@@ -12,7 +12,7 @@
   "helper.unsupported": "The helper supports Windows, Linux with systemd, and macOS with launchd. Use the existing elevated mode on other platforms.",
   "import.clash.invalid": "Clash/Mihomo YAML could not be read.",
   "import.clash.skipped": "Proxy #{0} is unsupported or invalid.",
-  "import.json.unsafe": "The JSON configuration contains unsupported or unsafe settings.",
+  "import.json.unsafe": "The JSON configuration contains unsupported or unsafe settings, or is missing a server, a valid port or required credentials.",
   "settings.secrets.locked": "Unlock the system credential store to access this secret.",
   "settings.secrets.missing": "This secret is missing from system credential storage. Restore a backup or import the profile again.",
   "settings.secrets.fallback": "System credential storage is unavailable. Using encrypted files.",

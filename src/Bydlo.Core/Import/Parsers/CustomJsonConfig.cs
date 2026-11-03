@@ -122,6 +122,7 @@ internal static class CustomJsonConfig
         }
         foreach (var outbound in outbounds.OfType<JsonObject>())
         {
+            ValidateOutbound(outbound, singBox);
             CheckReference(outbound, "detour", tags);
             if (singBox && (string?)outbound["type"] is "selector" or "urltest")
             {
@@ -144,6 +145,62 @@ internal static class CustomJsonConfig
         }
         Validate(root, null);
         return root;
+    }
+
+    private static void ValidateOutbound(JsonObject outbound, bool singBox)
+    {
+        var kind = (string)outbound[singBox ? "type" : "protocol"]!;
+        if (kind is "direct" or "selector" or "urltest" or "freedom" or "blackhole") { return; }
+
+        if (singBox)
+        {
+            Endpoint(outbound, "server", "server_port");
+            if (kind is "vless" or "vmess" or "tuic") { RequiredString(outbound, "uuid"); }
+            if (kind is "trojan" or "shadowsocks" or "hysteria2" or "tuic" or "anytls")
+            { RequiredString(outbound, "password"); }
+            if (kind == "shadowsocks") { RequiredString(outbound, "method"); }
+            foreach (var key in new[] { "tls", "transport", "multiplex", "obfs" })
+            {
+                if (outbound.ContainsKey(key) && outbound[key] is not JsonObject) { throw new FormatException(); }
+            }
+            return;
+        }
+
+        if (outbound["settings"] is not JsonObject settings) { throw new FormatException(); }
+        var vnext = kind is "vless" or "vmess";
+        if (settings[vnext ? "vnext" : "servers"] is not JsonArray { Count: > 0 } servers)
+        { throw new FormatException(); }
+        foreach (var item in servers)
+        {
+            if (item is not JsonObject server) { throw new FormatException(); }
+            Endpoint(server, "address", "port");
+            if (kind is "trojan" or "shadowsocks") { RequiredString(server, "password"); }
+            if (kind == "shadowsocks") { RequiredString(server, "method"); }
+            if (vnext)
+            {
+                if (server["users"] is not JsonArray { Count: > 0 } users) { throw new FormatException(); }
+                foreach (var user in users)
+                {
+                    if (user is not JsonObject account) { throw new FormatException(); }
+                    RequiredString(account, "id");
+                }
+            }
+        }
+        if (outbound.ContainsKey("streamSettings") && outbound["streamSettings"] is not JsonObject)
+        { throw new FormatException(); }
+    }
+
+    private static void Endpoint(JsonObject source, string hostKey, string portKey)
+    {
+        RequiredString(source, hostKey);
+        if (source[portKey] is not JsonValue value || !value.TryGetValue<int>(out var port) || port is < 1 or > 65535)
+        { throw new FormatException(); }
+    }
+
+    private static void RequiredString(JsonObject source, string key)
+    {
+        if (source[key] is not JsonValue value || !value.TryGetValue<string>(out var text) || string.IsNullOrWhiteSpace(text))
+        { throw new FormatException(); }
     }
 
     private static void CheckReference(JsonObject source, string key, HashSet<string> tags)

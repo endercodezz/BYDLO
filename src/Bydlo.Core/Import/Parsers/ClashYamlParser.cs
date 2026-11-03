@@ -78,7 +78,7 @@ internal static class ClashYamlParser
             "vmess" => ProtocolKind.Vmess,
             "trojan" => ProtocolKind.Trojan,
             "ss" => ProtocolKind.Shadowsocks,
-            "hysteria2" => ProtocolKind.Hysteria2,
+            "hysteria2" or "hy2" => ProtocolKind.Hysteria2,
             "tuic" => ProtocolKind.Tuic,
             _ => throw new FormatException(),
         };
@@ -114,7 +114,7 @@ internal static class ClashYamlParser
         }
 
         profile.Options[Keys.Transport] = network;
-        var security = Scalar(proxy, "tls") == "true" || protocol is ProtocolKind.Trojan or ProtocolKind.Hysteria2 or ProtocolKind.Tuic
+        var security = bool.TryParse(Scalar(proxy, "tls"), out var tls) && tls || protocol is ProtocolKind.Trojan or ProtocolKind.Hysteria2 or ProtocolKind.Tuic
             ? "tls" : "none";
         if (Node(proxy, "reality-opts") is YamlMappingNode reality)
         {
@@ -126,11 +126,20 @@ internal static class ClashYamlParser
         Copy(proxy, "servername", Keys.Sni);
         Copy(proxy, "sni", Keys.Sni);
         Copy(proxy, "client-fingerprint", Keys.Fingerprint);
-        Copy(proxy, "skip-cert-verify", Keys.AllowInsecure);
+        if (Scalar(proxy, "skip-cert-verify") is { } insecure)
+        {
+            if (!bool.TryParse(insecure, out var enabled)) { throw new FormatException(); }
+            profile.Options[Keys.AllowInsecure] = enabled ? "true" : "false";
+        }
         Copy(proxy, "flow", Keys.Flow);
         Copy(proxy, "obfs", Keys.Obfs);
         Copy(proxy, "congestion-controller", Keys.CongestionControl);
         Copy(proxy, "udp-relay-mode", Keys.UdpRelayMode);
+        if (protocol == ProtocolKind.Hysteria2)
+        {
+            CopyBandwidth("up", Keys.UpMbps);
+            CopyBandwidth("down", Keys.DownMbps);
+        }
         if (Scalar(proxy, "obfs-password") is { } obfs)
         {
             secrets.Values[Keys.ObfsPassword] = obfs;
@@ -143,6 +152,12 @@ internal static class ClashYamlParser
         {
             Copy(transport, "path", Keys.Path);
             Copy(transport, "host", Keys.HostHeader);
+            if (network is "h2" or "http" && Node(transport, "host") is YamlSequenceNode hosts)
+            {
+                if (hosts.Children.Any(item => item is not YamlScalarNode { Value.Length: > 0 }))
+                { throw new FormatException(); }
+                profile.Options[Keys.HostHeader] = string.Join(',', hosts.Children.Cast<YamlScalarNode>().Select(item => item.Value));
+            }
             Copy(transport, "grpc-service-name", Keys.ServiceName);
             if (Node(transport, "headers") is YamlMappingNode headers)
             {
@@ -152,6 +167,15 @@ internal static class ClashYamlParser
         return new(profile, secrets);
 
         string Required(string key) => Scalar(proxy, key) is { Length: > 0 } value ? value : throw new FormatException();
+        void CopyBandwidth(string key, string target)
+        {
+            if (Scalar(proxy, key) is not { } value) { return; }
+            value = value.Trim();
+            if (value.EndsWith("Mbps", StringComparison.OrdinalIgnoreCase)) { value = value[..^4].TrimEnd(); }
+            if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var mbps) || mbps <= 0)
+            { throw new FormatException(); }
+            profile.Options[target] = mbps.ToString(CultureInfo.InvariantCulture);
+        }
         void Copy(YamlMappingNode source, string key, string target)
         {
             if (Scalar(source, key) is { Length: > 0 } value)

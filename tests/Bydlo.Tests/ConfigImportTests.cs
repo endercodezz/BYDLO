@@ -8,6 +8,96 @@ namespace Bydlo.Tests;
 public sealed class ConfigImportTests
 {
     [Fact]
+    public async Task Custom_json_round_trips_through_secret_storage_without_leaking_to_profiles_file()
+    {
+        var file = Path.Combine(TestDirs.New("custom-json-secrets"), "profiles.json");
+        var secrets = new Bydlo.Core.Security.InMemorySecretStore();
+        var store = new Bydlo.Core.Storage.ProfileStore(file, secrets);
+        var imported = Assert.Single(new ProfileImporter().ImportText("""
+            {"outbounds":[{"type":"trojan","tag":"remote","server":"proxy.invalid","server_port":443,"password":"unique-private-password"}]}
+            """).Profiles);
+        await store.AddSubscriptionWithProfilesAsync("Custom", "https://subscription.invalid/list", [imported]);
+        Assert.DoesNotContain("unique-private-password", await File.ReadAllTextAsync(file));
+        await store.LoadAsync();
+        var profile = Assert.Single(store.Profiles);
+        var restored = await secrets.LoadAsync(profile.Id.ToString());
+        var config = new SingBoxConfigBuilder().Build(profile, restored, new BuildContext(new AppSettings()));
+        Assert.Equal("unique-private-password", (string?)config["outbounds"]![0]!["password"]);
+    }
+
+    [Theory]
+    [InlineData("proxies: [ &proxy {type: trojan, server: proxy.invalid, port: 443, password: secret}, *proxy ]")]
+    [InlineData("proxies: {type: trojan}")]
+    public void Rejects_yaml_aliases_and_invalid_proxy_collections(string yaml)
+    {
+        var result = new ProfileImporter().ImportText(yaml);
+        Assert.Empty(result.Profiles);
+        Assert.Equal("import.clash.invalid", Assert.Single(result.Errors));
+    }
+
+    [Fact]
+    public void Preserves_clash_h2_hosts_and_hysteria_bandwidth_in_generated_config()
+    {
+        var result = new ProfileImporter().ImportText("""
+            proxies:
+              - name: H2
+                type: vless
+                server: proxy.invalid
+                port: 443
+                uuid: id
+                tls: True
+                skip-cert-verify: True
+                network: h2
+                h2-opts:
+                  path: /relay
+                  host: [one.invalid, two.invalid]
+              - {type: hy2, server: proxy.invalid, port: 443, password: secret, up: 50 Mbps, down: 100}
+            """);
+        Assert.Empty(result.Errors);
+        Assert.Equal(2, result.Profiles.Count);
+        var first = result.Profiles[0];
+        var config = new SingBoxConfigBuilder().Build(first.Profile, first.Secrets, new BuildContext(new AppSettings()));
+        Assert.True((bool)config["outbounds"]![0]!["tls"]!["enabled"]!);
+        Assert.True((bool)config["outbounds"]![0]!["tls"]!["insecure"]!);
+        Assert.Equal("two.invalid", (string?)config["outbounds"]![0]!["transport"]!["host"]![1]);
+        var second = result.Profiles[1];
+        config = new SingBoxConfigBuilder().Build(second.Profile, second.Secrets, new BuildContext(new AppSettings()));
+        Assert.Equal(50, (int?)config["outbounds"]![0]!["up_mbps"]);
+        Assert.Equal(100, (int?)config["outbounds"]![0]!["down_mbps"]);
+    }
+
+    [Theory]
+    [InlineData("{\"type\":\"trojan\",\"tag\":\"proxy\"}")]
+    [InlineData("{\"type\":\"trojan\",\"tag\":\"proxy\",\"server\":\"host\",\"server_port\":443}")]
+    [InlineData("{\"type\":\"trojan\",\"tag\":\"proxy\",\"server\":\"host\",\"server_port\":65536,\"password\":\"secret\"}")]
+    [InlineData("{\"type\":\"trojan\",\"tag\":\"proxy\",\"server\":\"host\",\"server_port\":\"443\",\"password\":\"secret\"}")]
+    [InlineData("{\"type\":\"trojan\",\"tag\":\"proxy\",\"server\":\"host\",\"server_port\":443,\"password\":\"secret\",\"tls\":true}")]
+    [InlineData("{\"protocol\":\"trojan\",\"tag\":\"proxy\",\"settings\":{\"servers\":[{\"address\":\"host\",\"port\":0,\"password\":\"secret\"}]}}")]
+    [InlineData("{\"protocol\":\"vless\",\"tag\":\"proxy\",\"settings\":{\"vnext\":[{\"address\":\"host\",\"port\":443,\"users\":[]}]}}")]
+    public void Rejects_incomplete_or_malformed_outbounds_before_preview(string outbound)
+    {
+        var result = new ProfileImporter().ImportText("{\"outbounds\":[" + outbound + "]}");
+        Assert.Empty(result.Profiles);
+        Assert.Equal("import.json.unsafe", Assert.Single(result.Errors));
+    }
+
+    [Fact]
+    public void Custom_sing_box_tun_uses_owned_listener_and_authenticated_loopback_api()
+    {
+        var imported = Assert.Single(new ProfileImporter().ImportText("""
+            {"inbounds":[{"type":"mixed","listen":"0.0.0.0","listen_port":9999}],
+             "outbounds":[{"type":"direct","tag":"direct"}]}
+            """).Profiles);
+        var settings = new AppSettings { Mode = ConnectionMode.Tun };
+        var config = new SingBoxConfigBuilder().Build(imported.Profile, imported.Secrets, new BuildContext(settings, 3132, "local-secret"));
+        Assert.Equal("tun", (string?)config["inbounds"]![0]!["type"]);
+        Assert.DoesNotContain("0.0.0.0", config.ToJsonString());
+        Assert.Equal("127.0.0.1:3132", (string?)config["experimental"]!["clash_api"]!["external_controller"]);
+        Assert.Equal("local-secret", (string?)config["experimental"]!["clash_api"]!["secret"]);
+        Assert.Contains(config["route"]!["rules"]!.AsArray(), rule => (string?)rule?["action"] == "hijack-dns");
+    }
+
+    [Fact]
     public void Parses_mixed_clash_proxies_and_reports_skipped_rows_without_credentials()
     {
         var result = new ProfileImporter().ImportText("""

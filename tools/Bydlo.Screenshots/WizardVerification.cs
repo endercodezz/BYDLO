@@ -65,6 +65,38 @@ internal static class WizardVerification
 
         shell.OpenAddServerCommand.Execute(null);
         wizard.ChooseLinkCommand.Execute(null);
+        wizard.Input = """
+            proxies:
+              - {name: YAML, type: trojan, server: proxy.invalid, port: 443, password: yaml-private-password}
+              - {type: unsupported, password: skipped-private-password}
+            """;
+        Wait(wizard.ContinueCommand.ExecuteAsync(null));
+        Require(wizard.IsPreview && wizard.PreviewItems.Count == 1 && wizard.SkippedCount == 1,
+            "Clash YAML previews supported proxies and counts unsupported entries");
+        Require(wizard.SubscriptionDetails.Contains('2'), "Clash preview identifies the skipped row");
+        Require(!wizard.SubscriptionDetails.Contains("private-password", StringComparison.Ordinal), "Clash diagnostics hide secrets");
+        Capture("wizard-clash-preview", 1180, 780);
+        wizard.CloseCommand.Execute(null);
+
+        foreach (var customJson in new[]
+        {
+            """{"outbounds":[{"type":"trojan","tag":"remote","server":"proxy.invalid","server_port":443,"password":"json-private-password"}]}""",
+            """{"outbounds":[{"protocol":"trojan","tag":"remote","settings":{"servers":[{"address":"proxy.invalid","port":443,"password":"json-private-password"}]}}]}""",
+        })
+        {
+            shell.OpenAddServerCommand.Execute(null);
+            wizard.ChooseLinkCommand.Execute(null);
+            wizard.Input = customJson;
+            Wait(wizard.ContinueCommand.ExecuteAsync(null));
+            Require(wizard.IsPreview && wizard.PreviewItems.Count == 1 && services.Profiles.Profiles.Count == 0,
+                "Custom JSON previews without persistence");
+            Require(!wizard.PreviewItems.Any(p => (p.Name + p.Endpoint).Contains("json-private-password", StringComparison.Ordinal)),
+                "Custom JSON preview hides credentials");
+            wizard.CloseCommand.Execute(null);
+        }
+
+        shell.OpenAddServerCommand.Execute(null);
+        wizard.ChooseLinkCommand.Execute(null);
         wizard.Input = "unsupported://private-data";
         Wait(wizard.ContinueCommand.ExecuteAsync(null));
         Require(wizard.HasError && !wizard.IsPreview && !wizard.Error.Contains("private-data", StringComparison.Ordinal), "Invalid input has a safe error");
