@@ -192,12 +192,14 @@
                 <TextBlock Classes="caps" Text="{l:T settings.theme}" />
                 <Border Background="{DynamicResource Surface2Brush}" CornerRadius="12" Padding="4" HorizontalAlignment="Left">
                   <WrapPanel>
-                    <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemePurple}"><TextBlock Text="{l:T theme.purple}" /></RadioButton>
                     <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeLight}"><TextBlock Text="{l:T theme.light}" /></RadioButton>
                     <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeOled}"><TextBlock Text="{l:T theme.oled}" /></RadioButton>
                     <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeSystem}"><TextBlock Text="{l:T theme.system}" /></RadioButton>
                   </WrapPanel>
                 </Border>
+                <Expander Header="{l:T theme.custom.title}" HorizontalAlignment="Stretch" IsExpanded="{Binding OnboardingThemePurple, Mode=OneWay}">
+                    <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemePurple}"><TextBlock Text="{l:T theme.purple}" /></RadioButton>
+                </Expander>
               </StackPanel>
             </Expander>
           </StackPanel>

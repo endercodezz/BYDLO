@@ -41,6 +41,8 @@ public sealed partial class SettingsViewModel
     private static readonly JsonSerializerOptions IndentedJson = new() { WriteIndented = true };
     public bool ThemeCustom => Theme == ThemePreference.Custom;
 
+    public bool IsUserThemeSelected => Theme is ThemePreference.Purple or ThemePreference.Custom;
+
     public ObservableCollection<CustomThemeRow> InstalledThemes { get; } = [];
 
     public ObservableCollection<GalleryThemeRow> GalleryThemes { get; } = [];

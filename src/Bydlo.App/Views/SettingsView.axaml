@@ -28,7 +28,6 @@
           <TextBlock Classes="caps" Text="{l:T settings.theme}" />
           <Border Background="{DynamicResource Surface2Brush}" CornerRadius="8" Padding="4" HorizontalAlignment="Left">
             <WrapPanel>
-              <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemePurple}"><TextBlock Text="{l:T theme.purple}" /></RadioButton>
               <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeLight}"><TextBlock Text="{l:T theme.light}" /></RadioButton>
               <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeOled}"><TextBlock Text="{l:T theme.oled}" /></RadioButton>
               <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeSystem}"><TextBlock Text="{l:T theme.system}" /></RadioButton>
@@ -61,8 +60,9 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Expander Header="{l:T theme.custom.title}" HorizontalAlignment="Stretch">
+          <Expander Header="{l:T theme.custom.title}" HorizontalAlignment="Stretch" IsExpanded="{Binding IsUserThemeSelected, Mode=OneWay}">
             <StackPanel Spacing="10">
+              <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemePurple}"><TextBlock Text="{l:T theme.purple}" /></RadioButton>
               <TextBlock Classes="muted" Text="{l:T theme.custom.hint}" TextWrapping="Wrap" />
               <Border Classes="banner" IsVisible="{Binding HasCustomThemeWarning}">
                 <TextBlock Text="{Binding CustomThemeWarning}" TextWrapping="Wrap" />

@@ -363,6 +363,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         OnPropertyChanged(nameof(ThemeOled));
         OnPropertyChanged(nameof(ThemeSystem));
         OnPropertyChanged(nameof(ThemeCustom));
+        OnPropertyChanged(nameof(IsUserThemeSelected));
         RefreshCustomThemes();
     }
 

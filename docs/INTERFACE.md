@@ -44,11 +44,11 @@ Telegram-прокси. [Ограничения платформ](COMPATIBILITY.m
 
 ![Импорт и инструменты на главной](images/issue-92-home-after.png)
 
-### Светлая и OLED темы
+### Светлая и чёрная темы
 
 ![Светлая тема](images/issue-92-home-light.png)
 
-![OLED тема](images/issue-92-home-oled.png)
+![Чёрная тема](images/issue-92-home-oled.png)
 
 ### Узкое окно, 380 пикселей
 

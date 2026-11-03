@@ -505,7 +505,7 @@
   "settings.language": "Language",
   "theme.purple": "Purple",
   "theme.light": "Light",
-  "theme.oled": "OLED black",
+  "theme.oled": "Black",
   "theme.system": "System",
   "theme.custom.title": "Custom themes",
   "theme.custom.hint": "Themes are JSON files with colors only, up to 64 KiB. A broken file falls back to the base theme; nothing but colors is loaded.",
