@@ -143,6 +143,8 @@ dotnet run --project src/Bydlo.Desktop -c Release --no-build
 
 Сценарий агента с явным mock и изолированные проверки описаны в [docs/BUILD.md](docs/BUILD.md).
 
+Свой сервер на Linux VPS: [установщик Xray VLESS + REALITY](docs/VPS.md) и импорт персональной ссылки в BYDLO.
+
 ## Документация
 
 - [Импорт, буфер обмена и «Открыть с помощью»](docs/IMPORT.md)
@@ -201,5 +203,3 @@ BYDLO распространяется по [GNU General Public License v3.0 и�
 Сторонние компоненты сохраняют свои лицензии — см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Используйте BYDLO в соответствии с законодательством вашей страны. Это клиент для сетей и серверов, которыми вы вправе пользоваться.
-
-Свой сервер на Linux VPS: [установщик Xray VLESS + REALITY](docs/VPS.md) и импорт персональной ссылки в BYDLO.
