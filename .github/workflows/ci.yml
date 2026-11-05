@@ -30,6 +30,16 @@ env:
   BYDLO_MOCK: "1"
 
 jobs:
+  vps-installer:
+    name: Verify VPS config generation (isolated)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test generation without downloads or services
+        run: |
+          source scripts/env.sh
+          python3 -m unittest discover -s scripts/vps -p 'test_*.py'
+
   unix-activation:
     name: Verify macOS single-instance activation
     if: github.server_url == 'https://github.com'
