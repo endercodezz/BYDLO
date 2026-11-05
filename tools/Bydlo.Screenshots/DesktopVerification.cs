@@ -27,6 +27,9 @@ internal static class DesktopVerification
         window.Show();
         Until(() => services.Connections.Primary.Status == ConnectionStatus.Connected);
         Pump(50);
+        var clock = (DispatcherTimer)typeof(HomeViewModel).GetField("_clock",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(shell.Home)!;
+        if (!clock.IsEnabled) { throw new InvalidOperationException("Connected duration clock did not start."); }
         if (!services.Connections.Primary.IsMock) { throw new InvalidOperationException("Startup did not use MockEngine."); }
         var tray = TrayIcon.GetIcons(Application.Current!)!.Single();
         if (tray.Icon is null || !tray.ToolTipText!.Contains(Loc.Instance["status.connected"], StringComparison.Ordinal))
@@ -38,6 +41,8 @@ internal static class DesktopVerification
         var disconnect = (NativeMenuItem)menu.Items[2];
         disconnect.Command!.Execute(null);
         Until(() => services.Connections.Primary.Status == ConnectionStatus.Disconnected);
+        Pump(50);
+        if (clock.IsEnabled) { throw new InvalidOperationException("Disconnected duration clock did not stop."); }
 
         // Registration must remain blocked in developer sessions without touching the OS.
         shell.Settings.StartWithSystem = true;

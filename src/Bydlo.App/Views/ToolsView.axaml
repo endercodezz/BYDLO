@@ -56,7 +56,7 @@
             </StackPanel>
           </Border>
           <Button Classes="ghost" Content="{l:T common.cancel}" Command="{Binding CancelSelectionCommand}" IsVisible="{Binding IsSelecting}" HorizontalAlignment="Left" />
-          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsSelecting}" />
+          <ProgressBar IsIndeterminate="{Binding IsSelecting}" IsVisible="{Binding IsSelecting}" />
           <Expander Header="{l:T tools.setup}" HorizontalAlignment="Stretch" IsEnabled="{Binding !IsSelecting}">
             <StackPanel Spacing="16">
               <TextBlock Classes="muted" Text="{Binding ZapretInfo}" TextWrapping="Wrap" />
@@ -122,7 +122,7 @@
                 <TextBlock Classes="h3" Text="{l:T tools.startup.title}" TextWrapping="Wrap" />
                 <TextBlock Classes="muted" Text="{l:T tools.startup.scope}" TextWrapping="Wrap" />
                 <Button Classes="ghost" Content="{l:T tools.startup.recheck}" Command="{Binding RecheckStartupCommand}" HorizontalAlignment="Left" />
-                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsCheckingStartup}" />
+                <ProgressBar IsIndeterminate="{Binding IsCheckingStartup}" IsVisible="{Binding IsCheckingStartup}" />
                 <TextBlock Text="{Binding StartupCheckStatus}" TextWrapping="Wrap" IsVisible="{Binding HasStartupCheckStatus}" />
                 <Expander Header="{l:T tools.startup.details}" IsVisible="{Binding HasStartupCheckDetails}">
                   <ScrollViewer MaxHeight="200">
@@ -144,7 +144,7 @@
                   <Button Margin="0,0,8,8" Classes="ghost" Content="{l:T common.cancel}" Command="{Binding CancelSelectionCommand}" IsVisible="{Binding IsSelecting}" />
                   <Button Margin="0,0,8,8" Classes="ghost" Content="{l:T tools.select.apply}" Command="{Binding ApplySelectionCommand}" IsEnabled="{Binding CanApplySelection}" />
                 </WrapPanel>
-                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsSelecting}" />
+                <ProgressBar IsIndeterminate="{Binding IsSelecting}" IsVisible="{Binding IsSelecting}" />
                 <SelectableTextBlock Text="{Binding SelectionStatus}" TextWrapping="Wrap" />
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                   <StackPanel Spacing="6" MinWidth="620">

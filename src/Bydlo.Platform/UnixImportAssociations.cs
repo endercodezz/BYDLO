@@ -63,7 +63,7 @@ public sealed class UnixImportAssociations
         {
             Directory.CreateDirectory(Path.GetDirectoryName(DesktopPath)!);
             File.WriteAllText(DesktopPath, LinuxDesktop(_executable));
-            File.WriteAllText(OwnerPath, _executable);
+            File.WriteAllText(OwnerPath, BundleId);
             await Run("update-desktop-database", Path.GetDirectoryName(DesktopPath)!);
             foreach (var scheme in WindowsImportAssociations.Protocols)
             {
@@ -78,7 +78,7 @@ public sealed class UnixImportAssociations
             {
                 File.WriteAllText(script, MacScript(_executable));
                 await Run("/usr/bin/osacompile", "-o", BundlePath, script);
-                File.WriteAllText(OwnerPath, _executable);
+                File.WriteAllText(OwnerPath, BundleId);
                 var plist = Path.Combine(BundlePath, "Contents", "Info.plist");
                 await Run("/usr/bin/plutil", "-convert", "xml1", plist);
                 var document = XDocument.Load(plist);
@@ -126,7 +126,27 @@ public sealed class UnixImportAssociations
         }
     }
 
-    private bool IsOwner() => File.Exists(OwnerPath) && File.ReadAllText(OwnerPath) == _executable;
+    private bool IsOwner()
+    {
+        if (!File.Exists(OwnerPath)) { return false; }
+        var owner = File.ReadAllText(OwnerPath);
+        if (owner == BundleId) { return true; }
+        // Recognize legacy registrations only when their generated content matches the old owner path.
+        if (!owner.StartsWith('/') || owner.Any(char.IsControl)) { return false; }
+        if (_os == OsFamily.Linux)
+        {
+            return File.Exists(DesktopPath) && File.ReadAllText(DesktopPath) == LinuxDesktop(owner);
+        }
+        var plist = Path.Combine(BundlePath, "Contents", "Info.plist");
+        if (!File.Exists(plist)) { return false; }
+        try
+        {
+            var dict = XDocument.Load(plist).Root?.Element("dict");
+            return dict?.Elements("key").Any(k => k.Value == "CFBundleIdentifier" &&
+                k.NextNode is XElement value && value.Value == BundleId) == true;
+        }
+        catch (System.Xml.XmlException) { return false; }
+    }
     private void EnsureNativeAllowed()
     {
         if (_native) { NetworkSafetyGuard.EnsureAllowed("change desktop import associations"); }

@@ -30,7 +30,7 @@ internal sealed class SingBoxUriParser : IProfileParser
         var protocol = Protocol(scheme) ?? throw new ImportException("Unsupported proxy scheme.");
         var uri = ParseUri(input, scheme);
         var query = Query(uri);
-        var profile = new Profile { Protocol = protocol, Host = Host(uri), Port = Port(uri, protocol == ProtocolKind.Ssh ? 22 : 443) };
+        var profile = new Profile { Protocol = protocol, Host = Host(uri), Port = Port(uri, protocol == ProtocolKind.Ssh ? 22 : 443, input) };
         profile.Name = Fragment(uri, profile.Host);
         var secrets = new ProfileSecrets();
         var auth = uri.UserInfo.Split(':', 2).Select(Uri.UnescapeDataString).ToArray();

@@ -5,6 +5,7 @@ namespace Bydlo.Platform;
 /// <summary>Opt-in per-user registrations. Never changes file defaults or requires elevation.</summary>
 public static class WindowsImportAssociations
 {
+    internal const string OwnerId = "org.bydlo.import";
     public static IReadOnlyList<string> Protocols { get; } = Array.AsReadOnly(new[] { "vless", "vmess", "trojan", "ss", "hy2", "hysteria2", "tuic" });
 
     public static string OpenCommand(string executable)
@@ -27,13 +28,16 @@ public static class WindowsImportAssociations
         // Do not silently replace another application's custom protocol handler.
         foreach (var protocol in Protocols)
         {
-            if (store.ReadCommand(protocol, merged: true) is string other && other != command)
+            if (store.ReadCommand(protocol, merged: true) is string other && other != command &&
+                store.ReadOwner(protocol, merged: true) != OwnerId)
             {
                 throw new InvalidOperationException("Another application already handles this protocol.");
             }
         }
 
         store.Set(@"Software\Classes\BYDLO.Config", "", "BYDLO configuration");
+        store.Set(@"Software\Classes\BYDLO.Config", "BYDLO.Owner", OwnerId);
+        store.Set(@"Software\Classes\BYDLO.Config", "BYDLO.OwnerCommand", command);
         store.Set(@"Software\Classes\BYDLO.Config\shell\open\command", "", command);
         foreach (var extension in new[] { ".conf", ".ovpn" })
         {
@@ -44,6 +48,8 @@ public static class WindowsImportAssociations
         {
             store.Set($@"Software\Classes\{protocol}", "", $"URL:BYDLO {protocol}");
             store.Set($@"Software\Classes\{protocol}", "URL Protocol", "");
+            store.Set($@"Software\Classes\{protocol}", "BYDLO.Owner", OwnerId);
+            store.Set($@"Software\Classes\{protocol}", "BYDLO.OwnerCommand", command);
             store.Set($@"Software\Classes\{protocol}\shell\open\command", "", command);
         }
     }
@@ -57,7 +63,7 @@ public static class WindowsImportAssociations
         foreach (var protocol in Protocols.Append("BYDLO.Config"))
         {
             var path = $@"Software\Classes\{protocol}";
-            if (store.ReadCommand(protocol, merged: false) == command)
+            if (store.ReadCommand(protocol, merged: false) == command || store.ReadOwner(protocol, merged: false) == OwnerId)
             {
                 store.DeleteTree(path);
             }

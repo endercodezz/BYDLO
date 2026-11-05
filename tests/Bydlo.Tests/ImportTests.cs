@@ -42,6 +42,20 @@ public class ImportTests
         Assert.DoesNotContain("sssecret", string.Join(' ', invalid.Errors));
     }
 
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("null")]
+    [InlineData("42")]
+    [InlineData("true")]
+    [InlineData("\"text\"")]
+    public void Vmess_non_object_does_not_abort_mixed_import(string json)
+    {
+        var link = "vmess://" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
+        var result = _importer.ImportText("vless://11111111-2222-3333-4444-555555555555@example.test:443#Good\n" + link);
+        Assert.Equal("Good", Assert.Single(result.Profiles).Profile.Name);
+        Assert.Single(result.Errors);
+    }
+
     private readonly ProfileImporter _importer = new();
 
     private ImportedProfile One(string text)
@@ -235,3 +249,4 @@ public class ImportTests
             Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(body) });
     }
 }
+

@@ -172,7 +172,7 @@ public sealed class WireGuardUriParser : IProfileParser
                    (q.TryGetValue("mtu", out var mtu) ? $"MTU = {mtu}\n" : "") +
                    $"\n[Peer]\nPublicKey = {pub}\n" +
                    (q.TryGetValue("presharedkey", out var psk) ? $"PresharedKey = {psk}\n" : "") +
-                   $"AllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = {(uri.HostNameType == UriHostNameType.IPv6 ? $"[{Host(uri)}]" : Host(uri))}:{Port(uri, 51820)}\n";
+                   $"AllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = {(uri.HostNameType == UriHostNameType.IPv6 ? $"[{Host(uri)}]" : Host(uri))}:{Port(uri, 51820, text)}\n";
         var imported = new WireGuardConfParser().Parse(conf);
         imported.Profile.Name = Fragment(uri, imported.Profile.Name);
         return imported;

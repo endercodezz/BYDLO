@@ -84,9 +84,93 @@ internal static class ImportHelpers
 
     public static string Host(Uri uri) => uri.Host.Trim('[', ']');
 
-    public static int Port(Uri uri, int defaultPort)
+    /// <summary>
+    /// Detects whether the original link text contains an explicit port in the authority
+    /// (handles hostnames, IPv4, and bracketed IPv6). Needed because <see cref="Uri.IsDefaultPort"/>
+    /// is true both when the port is omitted and when it is explicitly set to the scheme default
+    /// (e.g. http://host:80), so callers cannot rely on it to apply proxy-specific defaults.
+    /// </summary>
+    public static bool HasExplicitPort(Uri uri, string? originalInput = null)
     {
-        var p = uri.IsDefaultPort || uri.Port <= 0 ? defaultPort : uri.Port;
+        var s = (originalInput ?? uri.OriginalString)?.Trim();
+        if (string.IsNullOrEmpty(s))
+        {
+            return false;
+        }
+
+        var schemeEnd = s.IndexOf("://", StringComparison.Ordinal);
+        if (schemeEnd < 0)
+        {
+            return false;
+        }
+
+        var rest = s[(schemeEnd + 3)..];
+        var end = rest.IndexOfAny(['/', '?', '#']);
+        var authority = end < 0 ? rest : rest[..end];
+        if (string.IsNullOrEmpty(authority))
+        {
+            return false;
+        }
+
+        var at = authority.LastIndexOf('@');
+        var hostPort = at >= 0 ? authority[(at + 1)..] : authority;
+        if (string.IsNullOrEmpty(hostPort))
+        {
+            return false;
+        }
+
+        if (hostPort[0] == '[')
+        {
+            var close = hostPort.IndexOf(']');
+            if (close < 0)
+            {
+                return false;
+            }
+
+            var after = hostPort[(close + 1)..];
+            if (after.Length == 0 || after[0] != ':')
+            {
+                return false;
+            }
+
+            var portPart = after[1..];
+            return portPart.Length > 0 && portPart.All(char.IsAsciiDigit);
+        }
+
+        var colon = hostPort.LastIndexOf(':');
+        if (colon < 0)
+        {
+            return false;
+        }
+
+        // Unbracketed IPv6 contains multiple colons; its trailing segment is not a port.
+        if (hostPort[..colon].Contains(':'))
+        {
+            return false;
+        }
+
+        var port = hostPort[(colon + 1)..];
+        return port.Length > 0 && port.All(char.IsAsciiDigit);
+    }
+
+    public static int Port(Uri uri, int defaultPort, string? originalInput = null)
+    {
+        int p;
+        if (!uri.IsDefaultPort && uri.Port > 0)
+        {
+            p = uri.Port;
+        }
+        else if (uri.Port > 0 && HasExplicitPort(uri, originalInput))
+        {
+            // Explicitly specified scheme-default port (e.g. http://host:80): keep it
+            // instead of replacing it with the proxy-specific default.
+            p = uri.Port;
+        }
+        else
+        {
+            p = defaultPort;
+        }
+
         return p is > 0 and <= 65535 ? p : throw new ImportException("Invalid port.");
     }
 

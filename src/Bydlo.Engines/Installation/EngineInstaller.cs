@@ -11,15 +11,24 @@ public sealed record InstallProgress(string Stage, double? Fraction);
 /// Downloads pinned engine releases, verifies SHA-256 against <see cref="EngineLock"/> and extracts them into
 /// BYDLO's private engines directory. Never installs system services, drivers or anything outside that folder.
 /// </summary>
-public sealed class EngineInstaller(HttpClient http, EngineLock engineLock, string enginesDirectory, PlatformInfo? hostPlatform = null)
+public sealed class EngineInstaller(HttpClient http, EngineLock engineLock, string enginesDirectory, PlatformInfo? hostPlatform = null, PlatformInfo? packagePlatform = null)
 {
     public string? PinnedVersion(string id) => engineLock.Find(id)?.Version;
 
     public string UserDataDirectory => Path.Combine(Path.GetDirectoryName(enginesDirectory)!, "zapret");
 
-    public string? BundledExecutable(string id, PlatformInfo platform, string? baseDirectory = null) =>
-        FindExecutable(id, platform, Path.Combine(baseDirectory ?? AppContext.BaseDirectory, "engines"));
-
+    public string? BundledExecutable(string id, PlatformInfo platform, string? baseDirectory = null)
+    {
+        // Bundled files belong to the running package, which may be emulated on another OS architecture.
+        var arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X64 => CpuArch.X64,
+            System.Runtime.InteropServices.Architecture.Arm64 => CpuArch.Arm64,
+            _ => CpuArch.Other,
+        };
+        return FindExecutable(id, packagePlatform ?? platform with { Arch = arch },
+            Path.Combine(baseDirectory ?? AppContext.BaseDirectory, "engines"));
+    }
     public string InstallDirectory(string id, string version) => Path.Combine(enginesDirectory, id, version);
 
     /// <summary>Path of the executable if this pinned version is already installed.</summary>
@@ -313,3 +322,5 @@ public sealed class EngineInstaller(HttpClient http, EngineLock engineLock, stri
             : throw new InvalidDataException($"Archive entry escapes the target folder: {relative}");
     }
 }
+
+

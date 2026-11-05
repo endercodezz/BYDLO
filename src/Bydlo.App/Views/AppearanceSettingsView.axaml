@@ -29,7 +29,7 @@
                 AutomationProperties.HelpText="{l:T settings.reduceMotion.hint}" />
       <Button Classes="ghost" Content="{l:T theme.custom.gallery}" Command="{Binding FetchGalleryCommand}"
               IsEnabled="{Binding !CustomThemesBusy}" HorizontalAlignment="Left" />
-      <ProgressBar IsIndeterminate="True" IsVisible="{Binding CustomThemesBusy}" />
+      <ProgressBar IsIndeterminate="{Binding CustomThemesBusy}" IsVisible="{Binding CustomThemesBusy}" />
       <ItemsControl ItemsSource="{Binding GalleryThemes}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:GalleryThemeRow">

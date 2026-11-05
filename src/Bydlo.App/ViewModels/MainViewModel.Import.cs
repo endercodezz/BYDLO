@@ -194,6 +194,7 @@ public sealed partial class MainViewModel
         finally
         {
             _preparingImport = false;
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => OnPropertyChanged(nameof(CanReceiveActivation)));
         }
     }
 

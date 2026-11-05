@@ -14,7 +14,7 @@
           <TextBlock Classes="display" Text="{l:T wizard.title}" TextWrapping="Wrap" Margin="0,0,12,0" VerticalAlignment="Center" />
           <Button Grid.Column="1" Classes="quiet" Content="{l:T common.cancel}" Command="{Binding CloseCommand}" IsEnabled="{Binding !IsSaving}" />
         </Grid>
-        <ProgressBar IsIndeterminate="True" IsVisible="{Binding ShowProgress}" Height="3" />
+        <ProgressBar IsIndeterminate="{Binding ShowProgress}" IsVisible="{Binding ShowProgress}" Height="3" />
         <StackPanel Spacing="18" IsEnabled="{Binding !Busy}">
           <StackPanel IsVisible="{Binding IsSource}" Spacing="12">
             <TextBlock Classes="muted" Text="{l:T wizard.source.hint}" TextWrapping="Wrap" Margin="0,0,0,6" />

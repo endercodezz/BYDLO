@@ -40,7 +40,7 @@ public class BundledEngineTests
         var engineLock = EngineLock.LoadEmbedded();
         var platform = new PlatformInfo(os, arch);
         var managedRoot = Path.Combine(root, "managed");
-        var locator = new EngineLocator(new EngineInstaller(new HttpClient(), engineLock, managedRoot), platform, root);
+        var locator = new EngineLocator(new EngineInstaller(new HttpClient(), engineLock, managedRoot, packagePlatform: platform), platform, root);
         foreach (var (kind, id) in new[] { (EngineKind.SingBox, "sing-box"), (EngineKind.Xray, "xray"), (EngineKind.OpenVpn, "openvpn"), (EngineKind.AmneziaWG, "amneziawg") })
         {
             var entry = engineLock.Find(id)!;
@@ -343,3 +343,4 @@ public class BundledEngineTests
         public Task RemoveAsync(CancellationToken ct = default) { if (FailCleanup) { throw new IOException("fixture cleanup failure"); } Prepared = false; return Task.CompletedTask; }
     }
 }
+

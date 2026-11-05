@@ -63,6 +63,19 @@ public sealed class UnixImportAssociationsTests : IDisposable
     }
 
     [Fact]
+    public async Task Linux_legacy_registration_can_move_to_another_executable_and_be_removed()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Desktop)!);
+        File.WriteAllText(Desktop, UnixImportAssociations.LinuxDesktop("/old/BYDLO"));
+        File.WriteAllText(Desktop + ".owner", "/old/BYDLO");
+        await Create(OsFamily.Linux).RegisterAsync();
+        Assert.Equal(UnixImportAssociations.LinuxDesktop(Executable), File.ReadAllText(Desktop));
+        var moved = new UnixImportAssociations(OsFamily.Linux, "/new/BYDLO", _home, null, null, _runner, _mac);
+        await moved.UnregisterAsync();
+        Assert.False(File.Exists(Desktop));
+    }
+
+    [Fact]
     public async Task Linux_removal_does_not_require_config_directory()
     {
         var service = Create(OsFamily.Linux);

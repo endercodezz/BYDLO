@@ -168,7 +168,7 @@
           <Button Classes="ghost" Content="{l:T warp.register}" Command="{Binding RegisterWarpCommand}" IsEnabled="{Binding CanRegisterWarp}" HorizontalAlignment="Left"
                   IsVisible="{Binding !IsWarpBusy}" />
           <Button Classes="ghost" Content="{l:T warp.registering}" HorizontalAlignment="Left" IsEnabled="False" IsVisible="{Binding IsWarpBusy}" />
-          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsWarpBusy}" Height="3" />
+          <ProgressBar IsIndeterminate="{Binding IsWarpBusy}" IsVisible="{Binding IsWarpBusy}" Height="3" />
         </StackPanel>
       </Expander>
       </StackPanel>

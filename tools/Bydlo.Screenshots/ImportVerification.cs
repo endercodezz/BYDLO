@@ -28,19 +28,19 @@ internal static class ImportVerification
         if (OperatingSystem.IsWindows())
         {
             var scope = Path.Combine(output, "ipc-" + Guid.NewGuid().ToString("N"));
-            using var primary = new Bydlo.Desktop.WindowsActivationBroker(scope, Bydlo.App.App.PendingActivations.Enqueue);
+            using var primary = new Bydlo.Desktop.WindowsActivationBroker(scope, Bydlo.App.App.EnqueueActivation);
             Require(primary.IsPrimary, "First activation owns the instance");
             primary.Listen();
             Wait(Task.Run(() =>
             {
-                using var secondary = new Bydlo.Desktop.WindowsActivationBroker(scope, Bydlo.App.App.PendingActivations.Enqueue);
+                using var secondary = new Bydlo.Desktop.WindowsActivationBroker(scope, Bydlo.App.App.EnqueueActivation);
                 Require(!secondary.IsPrimary, "Second launch forwards instead of starting another app");
                 secondary.Forward(["--mock", link, "ignored.exe"]);
             }));
             WaitUntil(() => shell.HasImportPreview && shell.CanConfirmImport, "Forwarded arguments reach existing window");
             Capture("import-activation", 1180, 780);
             Require(shell.HasImportPreview && shell.CanConfirmImport, "Forwarded arguments reach existing window");
-            Bydlo.App.App.PendingActivations.Enqueue([link + "queued"]);
+            Bydlo.App.App.EnqueueActivation([link + "queued"]);
             Capture("import-activation-queued", 1180, 780);
             Require(Bydlo.App.App.PendingActivations.Count == 1, "Active preview preserves queued requests");
             shell.CancelImportCommand.Execute(null);
@@ -52,7 +52,7 @@ internal static class ImportVerification
             {
                 Wait(Task.Run(() =>
                 {
-                    using var secondary = new Bydlo.Desktop.WindowsActivationBroker(scope, Bydlo.App.App.PendingActivations.Enqueue);
+                    using var secondary = new Bydlo.Desktop.WindowsActivationBroker(scope, Bydlo.App.App.EnqueueActivation);
                     Require(!secondary.IsPrimary, "Primary remains active across repeated launches");
                     secondary.Forward([link]);
                 }));
@@ -182,7 +182,7 @@ internal static class ImportVerification
         }
 
         // RunJobs deliberately ignores pending OS events, including the Windows dispatcher
-        // timer used by MainWindow to consume activations. Pump a real dispatcher frame.
+        // dispatcher callbacks used by MainWindow to consume activations. Pump a real dispatcher frame.
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var poll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
         poll.Tick += (_, _) =>

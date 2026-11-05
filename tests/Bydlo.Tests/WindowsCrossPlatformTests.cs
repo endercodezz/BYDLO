@@ -146,13 +146,41 @@ public sealed class WindowsCrossPlatformTests
         Assert.Empty(Directory.GetFiles(directory));
     }
 
+    [Fact]
+    public void Owned_import_associations_can_move_and_unregister_from_another_directory()
+    {
+        var store = new Registrations();
+        var oldCommand = WindowsImportAssociations.OpenCommand(@"C:\old\BYDLO.exe");
+        foreach (var protocol in WindowsImportAssociations.Protocols)
+        {
+            store.Commands[protocol] = oldCommand;
+            store.Set($@"Software\Classes\{protocol}", "BYDLO.Owner", WindowsImportAssociations.OwnerId);
+            store.Set($@"Software\Classes\{protocol}", "BYDLO.OwnerCommand", oldCommand);
+        }
+        WindowsImportAssociations.Register(@"C:\new\BYDLO.exe", store);
+        Assert.Equal(WindowsImportAssociations.OpenCommand(@"C:\new\BYDLO.exe"),
+            store.Values[@"Software\Classes\vless\shell\open\command|"]);
+        WindowsImportAssociations.Unregister(@"C:\third\BYDLO.exe", store);
+        Assert.Contains(@"Software\Classes\vless", store.DeletedTrees);
+    }
+
     private sealed class Registrations : IWindowsRegistrationStore
     {
         public Dictionary<string, string> Values { get; } = [];
         public Dictionary<string, string> Commands { get; } = [];
         public List<string> DeletedTrees { get; } = [];
         public string? ReadCommand(string protocol, bool merged) => Commands.GetValueOrDefault(protocol);
-        public void Set(string path, string name, string value) => Values[path + "|" + name] = value;
+        public string? ReadOwner(string protocol, bool merged) =>
+            Values.GetValueOrDefault($@"Software\Classes\{protocol}|BYDLO.OwnerCommand") == ReadCommand(protocol, merged)
+                ? Values.GetValueOrDefault($@"Software\Classes\{protocol}|BYDLO.Owner") : null;
+        public void Set(string path, string name, string value)
+        {
+            Values[path + "|" + name] = value;
+            if (path.EndsWith(@"\shell\open\command", StringComparison.Ordinal) && name == "")
+            {
+                Commands[path.Split('\\')[2]] = value;
+            }
+        }
         public void DeleteTree(string path) => DeletedTrees.Add(path);
         public void DeleteValue(string path, string name) => Values.Remove(path + "|" + name);
     }

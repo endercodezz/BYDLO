@@ -34,7 +34,7 @@ public sealed partial class HomeViewModel : PageViewModel
             OnPropertyChanged(nameof(Elapsed));
             Services.Connections.RefreshGroupSelection();
         });
-        _clock.Start();
+        UpdateClock();
     }
 
     private ConnectionStatus Status => Shell.Primary.Status;
@@ -431,6 +431,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
     public void RefreshAll()
     {
+        UpdateClock();
         if (!IsConnected)
         {
             ResetCheck();
@@ -447,6 +448,12 @@ public sealed partial class HomeViewModel : PageViewModel
         {
             OnPropertyChanged(name);
         }
+    }
+
+    private void UpdateClock()
+    {
+        if (IsConnected) { _clock.Start(); }
+        else { _clock.Stop(); }
     }
 
     /// <summary>Clears the card when Settings changes the provider. Safe to call from the UI thread.</summary>

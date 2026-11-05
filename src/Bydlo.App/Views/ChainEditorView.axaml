@@ -12,7 +12,7 @@
           <TextBlock Classes="display" Text="{l:T chain.new}" IsVisible="{Binding IsNew}" TextWrapping="Wrap" VerticalAlignment="Center" />
           <TextBlock Classes="display" Text="{l:T chain.edit}" IsVisible="{Binding !IsNew}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </Panel>
-        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsSaving}" Height="3" />
+        <ProgressBar IsIndeterminate="{Binding IsSaving}" IsVisible="{Binding IsSaving}" Height="3" />
         <StackPanel Spacing="18" IsEnabled="{Binding !IsSaving}">
           <StackPanel Spacing="8">
             <TextBlock Classes="caps" Text="{l:T chain.name}" />

@@ -10,6 +10,25 @@ namespace Bydlo.Tests;
 /// <summary>Atomic engine installation (issue #186). No network, fake HTTP only, temp dirs only.</summary>
 public sealed class EngineInstallerTests
 {
+    [Fact]
+    public void Bundled_engine_uses_package_architecture_under_emulation()
+    {
+        var root = TestDirs.New("bundled-emulation");
+        var engineLock = new EngineLock { Engines = [new("sing-box", "1", "MIT", "https://example.invalid", new()
+        {
+            ["windows-x64"] = new("https://example.invalid/x64.zip", "", "windows-amd64/sing-box.exe"),
+            ["windows-arm64"] = new("https://example.invalid/arm64.zip", "", "windows-arm64/sing-box.exe"),
+        })] };
+        var path = Path.Combine(root, "engines", "sing-box", "1", "windows-amd64", "sing-box.exe");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, "fake");
+        using var http = new HttpClient();
+        var installer = new EngineInstaller(http, engineLock, Path.Combine(root, "installed"), packagePlatform: new(OsFamily.Windows, CpuArch.X64));
+        var os = new PlatformInfo(OsFamily.Windows, CpuArch.Arm64);
+        Assert.Equal(path, installer.BundledExecutable("sing-box", os, root));
+        Assert.Null(installer.InstalledExecutable("sing-box", os));
+    }
+
     private static byte[] ZipWith(params (string Name, string Content)[] files)
     {
         using var bytes = new MemoryStream();
@@ -260,3 +279,5 @@ public sealed class EngineInstallerTests
         AssertNoLitter(root);
     }
 }
+
+

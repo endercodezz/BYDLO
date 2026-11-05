@@ -12,7 +12,8 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
 {
     private IManagedProcess? _process;
     private TaskCompletionSource? _ready;
-    private bool _stopping;
+    private volatile bool _stopping;
+    private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private int? _exitDuringStart;
     private string? _exitDuringStartFatal;
 
@@ -69,6 +70,13 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
 
     public async Task StartAsync(EngineStartRequest request, CancellationToken ct = default)
     {
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try { await StartCoreAsync(request, ct).ConfigureAwait(false); }
+        finally { _lifecycle.Release(); }
+    }
+
+    private async Task StartCoreAsync(EngineStartRequest request, CancellationToken ct)
+    {
         if (_process is not null || State is EngineState.Running or EngineState.Starting)
         {
             throw new EngineException($"{Descriptor.DisplayName} is already running.");
@@ -112,23 +120,25 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
             _stopping = false;
             _exitDuringStart = null;
             _exitDuringStartFatal = null;
-            _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _ready = ready;
             string? fatal = null;
 
-            _process = runner.Start(spec);
-            _process.OutputLine += (_, line) =>
+            var process = runner.Start(spec);
+            _process = process;
+            process.OutputLine += (_, line) =>
             {
                 EmitLog(line);
                 if (IsReadyLine(line))
                 {
-                    _ready.TrySetResult();
+                    ready.TrySetResult();
                 }
                 else if (TryParseFatal(line) is { } f)
                 {
-                    fatal ??= redactor.Redact(f);
+                    Interlocked.CompareExchange(ref fatal, redactor.Redact(f), null);
                 }
             };
-            _process.Exited += (_, code) => OnProcessExited(code, fatal);
+            process.Exited += (_, code) => OnProcessExited(process, code, Volatile.Read(ref fatal));
 
             var timeout = Task.Delay(ReadyTimeout, ct);
             var finished = await Task.WhenAny(_ready.Task, timeout).ConfigureAwait(false);
@@ -136,7 +146,7 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
             var exitedEarly = _process.HasExited;
             if (exitedEarly || _exitDuringStart.HasValue)
             {
-                throw new EngineException(_exitDuringStartFatal ?? fatal ?? $"{Descriptor.DisplayName} exited with code {_exitDuringStart ?? _process.ExitCode}.");
+                throw new EngineException(_exitDuringStartFatal ?? Volatile.Read(ref fatal) ?? $"{Descriptor.DisplayName} exited with code {_exitDuringStart ?? _process.ExitCode}.");
             }
 
             if (finished == timeout && !AliveMeansReady)
@@ -150,7 +160,7 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
                 var exitedLate = _process.HasExited;
                 if (exitedLate || _exitDuringStart.HasValue)
                 {
-                    throw new EngineException(_exitDuringStartFatal ?? fatal ?? $"{Descriptor.DisplayName} exited during startup.");
+                    throw new EngineException(_exitDuringStartFatal ?? Volatile.Read(ref fatal) ?? $"{Descriptor.DisplayName} exited during startup.");
                 }
 
                 SetState(EngineState.Running);
@@ -171,6 +181,14 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
 
     public async Task StopAsync(CancellationToken ct = default)
     {
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try { await StopSerializedAsync(ct).ConfigureAwait(false); }
+        finally { _lifecycle.Release(); }
+    }
+
+    private async Task StopSerializedAsync(CancellationToken ct)
+    {
+        _stopping = true;
         SetState(EngineState.Stopping);
         try
         {
@@ -190,15 +208,12 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
         GC.SuppressFinalize(this);
     }
 
-    private void OnProcessExited(int code, string? fatal)
+    private void OnProcessExited(IManagedProcess process, int code, string? fatal)
     {
-        _ready?.TrySetResult();
-        if (_stopping || State is EngineState.Stopped)
-        {
-            return;
-        }
         lock (_startGate)
         {
+            if (!ReferenceEquals(process, _process) || _stopping || State is EngineState.Stopped) { return; }
+            _ready?.TrySetResult();
             // The state read must hold the gate: otherwise an exit racing the
             // final check in StartAsync would be recorded as "during start"
             // after Running was already published and then dropped.
@@ -210,15 +225,21 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
             }
         }
 
-        _ = CleanupAfterExitAsync(code, fatal);
+        _ = CleanupAfterExitAsync(code, fatal, process);
     }
 
-    private async Task CleanupAfterExitAsync(int code, string? fatal)
+    private async Task CleanupAfterExitAsync(int code, string? fatal, IManagedProcess? process)
     {
-        var message = fatal ?? $"{Descriptor.DisplayName} exited unexpectedly (code {code}).";
-        try { await OnStoppingAsync().ConfigureAwait(false); }
-        catch (Exception ex) { message += " Cleanup failed: " + ex.Message; }
-        if (!_stopping) { SetState(EngineState.Failed, message); }
+        await _lifecycle.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_stopping || State != EngineState.Running || !ReferenceEquals(process, _process)) { return; }
+            var message = fatal ?? $"{Descriptor.DisplayName} exited unexpectedly (code {code}).";
+            try { await OnStoppingAsync().ConfigureAwait(false); }
+            catch (Exception ex) { message += " Cleanup failed: " + ex.Message; }
+            SetState(EngineState.Failed, message);
+        }
+        finally { _lifecycle.Release(); }
     }
 
     private async Task StopCoreAsync(TimeSpan timeout, CancellationToken ct = default)
@@ -244,7 +265,11 @@ public abstract class ProcessEngineBase(IProcessRunner runner, LogRedactor redac
 
     protected void SetState(EngineState state, string? error = null)
     {
-        State = state;
-        StateChanged?.Invoke(this, new EngineStateChangedEventArgs(state, error));
+        lock (_startGate)
+        {
+            State = state;
+            StateChanged?.Invoke(this, new EngineStateChangedEventArgs(state, error));
+        }
     }
 }
+

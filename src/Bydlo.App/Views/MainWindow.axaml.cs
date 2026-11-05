@@ -10,23 +10,45 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        var activationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
-        activationTimer.Tick += async (_, _) =>
+        var processingActivation = false;
+        async void ProcessActivations()
         {
-            if (DataContext is MainViewModel { CanReceiveActivation: true } vm &&
-                App.PendingActivations.TryDequeue(out var inputs))
+            if (processingActivation) { return; }
+            processingActivation = true;
+            try
             {
-                Show();
-                WindowState = WindowState.Normal;
-                Activate();
-                if (inputs.Length > 0)
+                while (DataContext is MainViewModel { CanReceiveActivation: true } vm &&
+                    App.PendingActivations.TryDequeue(out var inputs))
                 {
-                    await vm.PreviewExternalAsync(inputs);
+                    Show();
+                    WindowState = WindowState.Normal;
+                    Activate();
+                    if (inputs.Length > 0)
+                    {
+                        await vm.PreviewExternalAsync(inputs);
+                    }
                 }
             }
+            finally { processingActivation = false; }
+        }
+        void RequestActivation() => Dispatcher.UIThread.Post(ProcessActivations);
+        void ViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (!App.PendingActivations.IsEmpty) { RequestActivation(); }
+        }
+        MainViewModel? observed = null;
+        Opened += (_, _) =>
+        {
+            observed = DataContext as MainViewModel;
+            if (observed is not null) { observed.PropertyChanged += ViewModelChanged; }
+            App.ActivationRequested += RequestActivation;
+            RequestActivation();
         };
-        Opened += (_, _) => activationTimer.Start();
-        Closed += (_, _) => activationTimer.Stop();
+        Closed += (_, _) =>
+        {
+            App.ActivationRequested -= RequestActivation;
+            if (observed is not null) { observed.PropertyChanged -= ViewModelChanged; }
+        };
         Opened += async (_, _) =>
         {
             if (DataContext is MainViewModel vm)
