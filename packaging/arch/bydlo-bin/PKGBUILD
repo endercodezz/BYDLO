@@ -2,7 +2,7 @@
 # Prebuilt BYDLO from the official GitHub release (self-contained, with pinned engines).
 # Update: bump pkgver, then `updpkgsums` and `makepkg --printsrcinfo > .SRCINFO`.
 pkgname=bydlo-bin
-pkgver=0.4.1
+pkgver=0.4.3
 pkgrel=1
 pkgdesc='Bypass Your Digital Limitations Online — one app for every protocol'
 arch=('x86_64' 'aarch64')
@@ -22,8 +22,8 @@ options=('!strip' '!debug')
 source_x86_64=("${url}/releases/download/v${pkgver}/bydlo_${pkgver}_amd64.deb")
 source_aarch64=("${url}/releases/download/v${pkgver}/bydlo_${pkgver}_arm64.deb")
 noextract=("bydlo_${pkgver}_amd64.deb" "bydlo_${pkgver}_arm64.deb")
-sha256sums_x86_64=('c23b88e8663bf2ede79d5da810f9f8fc578d9aab5b016bede396d9c076dadb15')
-sha256sums_aarch64=('50648f695eccc050c3a00666f775ffd49cd97f131156cf69e6aa0585643a6f6f')
+sha256sums_x86_64=('334b8bcd940ba734d4c78b41b1f6e766585edfd7652bcb61793fab07a3a1a7ed')
+sha256sums_aarch64=('87461e00d99e379e0e2c3206ef6e8887c93cf53c60872762f43b35f43bdbdb70')
 
 prepare() {
   local deb_arch=amd64
