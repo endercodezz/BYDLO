@@ -52,6 +52,13 @@
           <Border Classes="banner bad" IsVisible="{Binding ZapretError, Converter={x:Static ObjectConverters.IsNotNull}}">
             <StackPanel Spacing="8">
               <TextBlock Text="{Binding ZapretError}" TextWrapping="Wrap" />
+              <StackPanel Spacing="8" IsVisible="{Binding ShowZapretHelperSetup}">
+                <TextBlock Text="{l:T tools.zapret.helper.hint}" TextWrapping="Wrap" />
+                <Button Classes="ghost" Command="{Binding InstallZapretHelperCommand}" IsEnabled="{Binding Shell.Settings.CanManageHelper}" HorizontalAlignment="Left">
+                  <TextBlock Text="{l:T tools.zapret.helper.install}" TextWrapping="Wrap" />
+                </Button>
+                <TextBlock Text="{Binding Shell.Settings.HelperStatus}" TextWrapping="Wrap" />
+              </StackPanel>
               <Button Classes="ghost" Content="{l:T settings.admin.restart}" Command="{Binding RestartElevatedCommand}" IsVisible="{Binding ShowRestartElevated}" HorizontalAlignment="Left" />
             </StackPanel>
           </Border>

@@ -20,7 +20,7 @@ if (args.Contains("--verify-licenses", StringComparer.Ordinal))
 {
     Environment.SetEnvironmentVariable("BYDLO_DATA_DIR", Path.Combine(output, "appdata"));
 }
-if (args.Contains("--verify-overhaul", StringComparer.Ordinal) || args.Contains("--verify-settings-navigation", StringComparer.Ordinal))
+if (args.Contains("--verify-overhaul", StringComparer.Ordinal) || args.Contains("--verify-settings-navigation", StringComparer.Ordinal) || args.Contains("--verify-zapret-helper", StringComparer.Ordinal))
 {
     Environment.SetEnvironmentVariable("BYDLO_DATA_DIR", Path.Combine(output, "appdata"));
 }
@@ -58,6 +58,12 @@ if (app.Services is null)
 }
 var services = app.Services!;
 Bydlo.App.Services.Loc.Instance.SetLanguage(lang);
+
+if (args.Contains("--verify-zapret-helper", StringComparer.Ordinal))
+{
+    ZapretHelperVerification.Run(output);
+    return;
+}
 
 if (args.Contains("--verify-elevation", StringComparer.Ordinal))
 {

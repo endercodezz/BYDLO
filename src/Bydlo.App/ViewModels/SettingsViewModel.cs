@@ -25,22 +25,25 @@ public sealed partial class SettingsViewModel : PageViewModel
     [ObservableProperty] private string _helperStatus = "";
 
     [RelayCommand]
-    private Task InstallHelperAsync() => ChangeHelperAsync(true);
+    private async Task InstallHelperAsync() { await ChangeHelperAsync(true); }
     [RelayCommand]
-    private Task RemoveHelperAsync() => ChangeHelperAsync(false);
+    private async Task RemoveHelperAsync() { await ChangeHelperAsync(false); }
 
-    private async Task ChangeHelperAsync(bool install)
+    internal Task<bool> InstallHelperForZapretAsync() => ChangeHelperAsync(true);
+
+    private async Task<bool> ChangeHelperAsync(bool install)
     {
-        if (!CanManageHelper) { return; }
+        if (!CanManageHelper) { return false; }
         HelperBusy = true;
         try
         {
             await Services.Connections.StopAllAsync();
             var success = await Bydlo.Platform.HelperManagement.ChangeAsync(install, userConsent: true);
             HelperStatus = Loc.Instance[success ? "helper.changed" : "helper.error"];
+            return success;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
-        { HelperStatus = Loc.Instance["helper.error"]; }
+        { HelperStatus = Loc.Instance["helper.error"]; return false; }
         finally
         {
             HelperBusy = false;

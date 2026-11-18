@@ -28,6 +28,16 @@ public sealed class DesktopIntegration : IDisposable
     private bool _disposed;
     private bool _startupHandled;
     private bool _refreshPending;
+    private readonly NativeMenu _menu = new();
+    private readonly NativeMenu _servers = new();
+    private readonly NativeMenuItem _open = new();
+    private readonly NativeMenuItem _status = new() { IsEnabled = false };
+    private readonly NativeMenuItem _connect = new();
+    private readonly NativeMenuItem _serverList = new();
+    private readonly NativeMenuItem _zapret = new();
+    private readonly NativeMenuItem _tg = new();
+    private readonly NativeMenuItem _exit = new();
+    private string? _profilesState;
 
     public DesktopIntegration(MainViewModel shell, Window window, IClassicDesktopStyleApplicationLifetime lifetime)
     {
@@ -35,7 +45,23 @@ public sealed class DesktopIntegration : IDisposable
         _window = window;
         _lifetime = lifetime;
         _nativeNotifications = new DesktopNotifications(shell.Services.Runner);
-        _tray = new TrayIcon { IsVisible = true };
+        _open.Command = new RelayCommand(ShowWindow);
+        _connect.Command = shell.Home.ToggleConnectionCommand;
+        _serverList.Menu = _servers;
+        _zapret.Command = shell.Tools.ToggleZapretCommand;
+        _tg.Command = shell.Tools.ToggleTgCommand;
+        _exit.Command = new AsyncRelayCommand(ExitAsync);
+        _menu.Items.Add(_open);
+        _menu.Items.Add(_status);
+        _menu.Items.Add(_connect);
+        _menu.Items.Add(_serverList);
+        _menu.Items.Add(new NativeMenuItemSeparator());
+        _menu.Items.Add(_zapret);
+        _menu.Items.Add(_tg);
+        _menu.Items.Add(new NativeMenuItemSeparator());
+        _menu.Items.Add(_exit);
+        // Avalonia.Native retains the exported menu identity. Never replace it during refresh.
+        _tray = new TrayIcon { Menu = _menu, IsVisible = true };
         TrayIcon.SetIcons(Application.Current!, new TrayIcons { _tray });
         _tray.Clicked += OnTrayClicked;
         window.Closing += OnClosing;
@@ -153,33 +179,36 @@ public sealed class DesktopIntegration : IDisposable
             _shell.Home.ZapretState, _shell.Home.TgState, _shell.SelectedProfile?.Id.ToString(),
             string.Join(';', _shell.Profiles.Select(p => p.Id + ":" + p.Name)));
         if (state == _menuState) { return; }
-        _menuState = state;
         _tray.ToolTipText = "BYDLO · " + _shell.Home.StatusText + "\nZapret · " + _shell.Home.ZapretState + "\nTgWsProxy · " + _shell.Home.TgState;
-        var menu = new NativeMenu();
-        menu.Items.Add(Item(l["tray.open"], new RelayCommand(ShowWindow)));
-        menu.Items.Add(new NativeMenuItem { Header = _shell.Home.StatusText, IsEnabled = false });
-        menu.Items.Add(Item(_shell.Home.ButtonText, _shell.Home.ToggleConnectionCommand));
-        var servers = new NativeMenu();
-        foreach (var profile in _shell.Profiles)
+        _open.Header = l["tray.open"];
+        _status.Header = _shell.Home.StatusText;
+        _connect.Header = _shell.Home.ButtonText;
+        _serverList.Header = l["tray.servers"];
+        _serverList.IsEnabled = _shell.Profiles.Count > 0;
+        _zapret.Header = "Zapret · " + _shell.Home.ZapretState;
+        _tg.Header = "TgWsProxy · " + _shell.Home.TgState;
+        _exit.Header = l["tray.exit"];
+        var profilesState = string.Join(';', _shell.Profiles.Select(p => p.Id + ":" + p.Name));
+        if (profilesState != _profilesState)
         {
-            servers.Items.Add(new NativeMenuItem
+            _servers.Items.Clear();
+            foreach (var profile in _shell.Profiles)
             {
-                Header = profile.Name, ToggleType = NativeMenuItemToggleType.Radio,
-                IsChecked = _shell.SelectedProfile?.Id == profile.Id,
-                Command = new RelayCommand(() => _shell.SelectedProfile = profile),
-            });
+                _servers.Items.Add(new NativeMenuItem
+                {
+                    Header = profile.Name, ToggleType = NativeMenuItemToggleType.Radio,
+                    Command = new RelayCommand(() => _shell.SelectedProfile = profile),
+                });
+            }
+            _profilesState = profilesState;
         }
-        menu.Items.Add(new NativeMenuItem { Header = l["tray.servers"], Menu = servers, IsEnabled = servers.Items.Count > 0 });
-        menu.Items.Add(new NativeMenuItemSeparator());
-        menu.Items.Add(Item("Zapret · " + _shell.Home.ZapretState, _shell.Tools.ToggleZapretCommand));
-        menu.Items.Add(Item("TgWsProxy · " + _shell.Home.TgState, _shell.Tools.ToggleTgCommand));
-        menu.Items.Add(new NativeMenuItemSeparator());
-        menu.Items.Add(Item(l["tray.exit"], new AsyncRelayCommand(ExitAsync)));
-        _tray.Menu = menu;
+        for (var i = 0; i < _shell.Profiles.Count; i++)
+        {
+            ((NativeMenuItem)_servers.Items[i]).IsChecked = _shell.SelectedProfile?.Id == _shell.Profiles[i].Id;
+        }
         UpdateIcon();
+        _menuState = state;
     }
-
-    private static NativeMenuItem Item(string header, System.Windows.Input.ICommand command) => new() { Header = header, Command = command };
 
     private ConnectionStatus? _iconStatus;
     private void UpdateIcon()

@@ -149,6 +149,10 @@ public sealed partial class ToolsViewModel : PageViewModel
         && !Services.Privileges.IsElevated
         && Services.Privileges.CanRestartElevated;
 
+    public bool ShowZapretHelperSetup => ZapretNeedsElevation
+        && !Services.Privileges.IsElevated
+        && Shell.Settings.HelperSupported && !Shell.Settings.HelperInstalled;
+
     // ---------- TgWsProxy ----------
 
     [ObservableProperty]
@@ -234,6 +238,24 @@ public sealed partial class ToolsViewModel : PageViewModel
 
         SaveZapretSettings();
         await Shell.Guard(() => Services.Connections.StartZapretAsync(Services.EffectiveSettings));
+        if (Services.Connections.Zapret.ErrorLocalizationKey == "error.engine.zapret.admin")
+        {
+            // Also expose recovery when activation came from the tray.
+            Shell.Navigate("tools");
+        }
+    }
+
+    [RelayCommand]
+    private async Task InstallZapretHelper()
+    {
+        if (!ShowZapretHelperSetup || !Shell.Settings.CanManageHelper) { return; }
+        var installed = await Shell.Settings.InstallHelperForZapretAsync();
+        RefreshListEditing();
+        OnPropertyChanged(nameof(ShowZapretHelperSetup));
+        if (installed && Services.UsesPrivilegedHelper)
+        {
+            await ToggleZapret();
+        }
     }
 
     [RelayCommand]
@@ -557,6 +579,7 @@ public sealed partial class ToolsViewModel : PageViewModel
             OnPropertyChanged(nameof(ZapretError));
             OnPropertyChanged(nameof(ZapretNeedsElevation));
             OnPropertyChanged(nameof(ShowRestartElevated));
+            OnPropertyChanged(nameof(ShowZapretHelperSetup));
         }
         else if (e.PropertyName == nameof(MainViewModel.Tg))
         {
