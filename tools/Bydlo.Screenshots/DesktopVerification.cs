@@ -43,6 +43,29 @@ internal static class DesktopVerification
         Until(() => services.Connections.Primary.Status == ConnectionStatus.Disconnected);
         Pump(50);
         if (clock.IsEnabled) { throw new InvalidOperationException("Disconnected duration clock did not stop."); }
+        RequireSameMenus();
+        Wait(shell.Tools.ToggleZapretCommand.ExecuteAsync(null));
+        Pump(50);
+        RequireSameMenus();
+        Wait(shell.Tools.ToggleZapretCommand.ExecuteAsync(null));
+        Pump(50);
+        RequireSameMenus();
+        var language = Loc.Instance.Language;
+        Loc.Instance.SetLanguage(language == "ru" ? "en" : "ru");
+        Pump(50);
+        RequireSameMenus();
+        Loc.Instance.SetLanguage(language);
+        var profileCount = shell.Profiles.Count;
+        Wait(shell.Connections.ImportTextAsync("socks5://127.0.0.1:1081#Second-tray-server"));
+        Pump(50);
+        RequireSameMenus();
+        if (servers.Items.Count != profileCount + 1)
+        { throw new InvalidOperationException("Stable tray submenu did not update profiles."); }
+        var select = (NativeMenuItem)servers.Items[^1];
+        select.Command!.Execute(null);
+        Pump(50);
+        if (!select.IsChecked || ((NativeMenuItem)servers.Items[0]).IsChecked)
+        { throw new InvalidOperationException("Tray radio selection did not refresh."); }
 
         // Registration must remain blocked in developer sessions without touching the OS.
         shell.Settings.StartWithSystem = true;
@@ -74,6 +97,13 @@ internal static class DesktopVerification
         window.Close();
         Until(() => !window.IsVisible);
         Console.WriteLine("Desktop integration: mock startup connection, tray state/menu, disconnect, settings, registration guard and explicit exit passed.");
+
+        void RequireSameMenus()
+        {
+            if (!ReferenceEquals(menu, tray.Menu) || !ReferenceEquals(servers, ((NativeMenuItem)tray.Menu!.Items[3]).Menu)
+                || !ReferenceEquals(disconnect, tray.Menu.Items[2]))
+            { throw new InvalidOperationException("Tray refresh replaced an exported menu or command item."); }
+        }
     }
 
     private static void Until(Func<bool> condition)

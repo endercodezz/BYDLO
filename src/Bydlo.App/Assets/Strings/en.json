@@ -1,4 +1,6 @@
 {
+  "tools.zapret.helper.hint": "Zapret needs a privileged service. Installing it stops BYDLO connections and requests administrator approval (PolKit on Linux). After installation, Zapret starts automatically; the app continues without root rights.",
+  "tools.zapret.helper.install": "Install service and start Zapret",
   "connections.search": "Find by name, host or protocol",
   "connections.search.empty": "No servers match your search.",
   "connections.actions": "Server actions",
