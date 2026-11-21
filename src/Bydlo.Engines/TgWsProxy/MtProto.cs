@@ -155,21 +155,31 @@ internal sealed class MsgSplitter(uint protoTag)
     private int _length;
     private bool _disabled;
 
-    public List<byte[]> Split(ReadOnlySpan<byte> cipher, ReadOnlySpan<byte> plain)
+    private int _pending;
+
+    /// <summary>
+    /// Appends a chunk and reports the whole packets now available, without allocating (issue #359):
+    /// the packets are contiguous in the returned memory and <paramref name="lengths"/> receives
+    /// their sizes. The memory stays valid only until the next call to this splitter.
+    /// </summary>
+    public ReadOnlyMemory<byte> SplitInto(ReadOnlySpan<byte> cipher, ReadOnlySpan<byte> plain, List<int> lengths)
     {
-        var parts = new List<byte[]>();
+        lengths.Clear();
+        Consume(_pending);
+        _pending = 0;
         if (cipher.IsEmpty)
         {
-            return parts;
-        }
-
-        if (_disabled)
-        {
-            parts.Add(cipher.ToArray());
-            return parts;
+            return ReadOnlyMemory<byte>.Empty;
         }
 
         Append(cipher, plain);
+        if (_disabled)
+        {
+            lengths.Add(_length);
+            _pending = _length;
+            return _cipher.AsMemory(0, _length);
+        }
+
         var offset = 0;
         while (offset < _length)
         {
@@ -182,22 +192,40 @@ internal sealed class MsgSplitter(uint protoTag)
             if (packet <= 0)
             {
                 // Unknown framing: stop splitting and pass everything through as is.
-                parts.Add(_cipher.AsSpan(offset, _length - offset).ToArray());
+                lengths.Add(_length - offset);
                 offset = _length;
                 _disabled = true;
                 break;
             }
 
-            parts.Add(_cipher.AsSpan(offset, packet.Value).ToArray());
+            lengths.Add(packet.Value);
             offset += packet.Value;
         }
 
-        Consume(offset);
+        _pending = offset;
+        return _cipher.AsMemory(0, offset);
+    }
+
+    /// <summary>Allocating form of <see cref="SplitInto"/>, kept for tests and rare paths.</summary>
+    public List<byte[]> Split(ReadOnlySpan<byte> cipher, ReadOnlySpan<byte> plain)
+    {
+        var lengths = new List<int>();
+        var packets = SplitInto(cipher, plain, lengths).Span;
+        var parts = new List<byte[]>(lengths.Count);
+        var at = 0;
+        foreach (var length in lengths)
+        {
+            parts.Add(packets.Slice(at, length).ToArray());
+            at += length;
+        }
+
         return parts;
     }
 
     public byte[]? Flush()
     {
+        Consume(_pending);
+        _pending = 0;
         if (_length == 0)
         {
             return null;
