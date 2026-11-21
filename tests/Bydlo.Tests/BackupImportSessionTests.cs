@@ -48,13 +48,13 @@ public sealed class BackupImportSessionTests
     public void Dispose_is_idempotent_and_clears_owned_arrays_and_failed_read_plaintext()
     {
         var session = BackupArchive.OpenImport(BackupArchive.Encrypt(Data(), Password), Password);
-        byte[]? plaintext = null;
+        ReadOnlyMemory<byte>? plaintext = null;
         var read = typeof(BackupImportSession).GetMethod("ReadPlaintext", BindingFlags.Instance | BindingFlags.NonPublic)!.MakeGenericMethod(typeof(bool));
-        var error = Assert.Throws<TargetInvocationException>(() => read.Invoke(session, [new Func<byte[], bool>(bytes =>
+        var error = Assert.Throws<TargetInvocationException>(() => read.Invoke(session, [new Func<ReadOnlyMemory<byte>, bool>(bytes =>
         { plaintext = bytes; throw new IOException("Synthetic read failure"); })]));
         Assert.IsType<IOException>(error.InnerException);
         Assert.NotNull(plaintext);
-        Assert.All(plaintext, value => Assert.Equal(0, value));
+        Assert.All(plaintext.Value.ToArray(), value => Assert.Equal(0, value));
         var key = Buffer(session, "_key");
         var archive = Buffer(session, "_archive");
         Assert.Contains(key, value => value != 0);
@@ -97,7 +97,7 @@ public sealed class BackupImportSessionTests
         try
         {
             var method = typeof(BackupImportSession).GetMethod("ReadMetadata", BindingFlags.NonPublic | BindingFlags.Static)!;
-            var sanitized = (BackupData)method.Invoke(null, [plaintext])!;
+            var sanitized = (BackupData)method.Invoke(null, [new ReadOnlyMemory<byte>(plaintext)])!;
             Assert.Equal("x", sanitized.Profiles[0].Secrets[Keys.Password]);
             Assert.Equal("x", sanitized.Profiles[0].Secrets[Keys.RawConfig]);
             Assert.Equal("x", sanitized.Profiles[0].Profile.Options[Keys.XhttpHeaders]);
