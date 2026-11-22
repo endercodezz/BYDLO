@@ -131,7 +131,7 @@
                       <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="r:RuleSetSource">
                           <StackPanel Spacing="4">
-                            <TextBlock Text="{Binding Tag}" />
+                            <TextBlock Text="{Binding Tag}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Tag}" />
                             <TextBlock Classes="faint" Text="{Binding Url}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Url}" />
                           </StackPanel>
                         </DataTemplate>
@@ -159,15 +159,15 @@
                 <ListBox x:Name="RuleList" ItemsSource="{Binding OrderedRules}" SelectedItem="{Binding SelectedRule}" MaxHeight="240">
                   <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="r:OrderedRoutingRule">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
                         <Border Padding="4" Cursor="SizeAll" PointerPressed="OnRuleDragStart"
                                 ToolTip.Tip="{l:T routing.rules.drag}">
                           <TextBlock Text="⋮⋮" />
                         </Border>
-                        <TextBlock Text="{Binding Condition, Converter={x:Static l:RoutingRuleLabelConverter.Instance}}" />
-                        <TextBlock Text="{Binding Value}" />
-                        <TextBlock Text="{Binding Action, Converter={x:Static l:RoutingRuleLabelConverter.Instance}}" />
-                      </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding Condition, Converter={x:Static l:RoutingRuleLabelConverter.Instance}}" />
+                        <TextBlock Grid.Column="2" Text="{Binding Value}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="3" Text="{Binding Action, Converter={x:Static l:RoutingRuleLabelConverter.Instance}}" />
+                      </Grid>
                     </DataTemplate>
                   </ListBox.ItemTemplate>
                 </ListBox>

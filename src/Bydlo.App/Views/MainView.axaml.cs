@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Bydlo.App.Services;
 using Bydlo.Core.Import;
 using Bydlo.App.ViewModels;
 
@@ -11,7 +12,7 @@ namespace Bydlo.App.Views;
 public sealed partial class MainView : UserControl
 {
     /// <summary>Below this width the sidebar collapses into bottom navigation (phones, narrow windows).</summary>
-    public const double CompactWidth = 760;
+    public const double CompactWidth = LayoutMetrics.CompactWidth;
 
     public MainView()
     {
@@ -107,7 +108,9 @@ public sealed partial class MainView : UserControl
         base.OnSizeChanged(e);
         if (DataContext is MainViewModel vm)
         {
-            vm.IsCompact = e.NewSize.Width < CompactWidth;
+            // The interface scale shrinks the layout width, so the shell reports its scaled width
+            // and the view model compares the effective unscaled width (issue #477).
+            vm.LayoutWidth = e.NewSize.Width;
         }
     }
 }

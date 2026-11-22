@@ -87,7 +87,7 @@
                         <TextBlock Text="{l:T status.connected}" FontSize="10" />
                       </Border>
                     </StackPanel>
-                    <TextBlock Classes="faint" Text="{Binding Details}" />
+                    <TextBlock Classes="faint" Text="{Binding Details}" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" Spacing="6">
                       <TextBlock Classes="faint" Text="{Binding Endpoint}" TextTrimming="CharacterEllipsis" />
                       <Border Classes="pill" Classes.ok="{Binding LatencyOk}" Classes.warn="{Binding LatencyWarn}" Classes.bad="{Binding LatencyBad}"
@@ -201,7 +201,7 @@
                         <TextBlock Text="{l:T status.connected}" FontSize="10" />
                       </Border>
                     </StackPanel>
-                    <TextBlock Classes="faint" Text="{Binding Details}" />
+                    <TextBlock Classes="faint" Text="{Binding Details}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Classes="faint" Text="{Binding HopSummary}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                   <StackPanel Classes="profile-actions" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Bydlo.App.Services;
 using Bydlo.Core.Connection;
@@ -69,6 +70,7 @@ public sealed partial class MainViewModel : ViewModelBase
         _isOnboardingVisible = !services.Settings.OnboardingCompleted;
         _onboardingLanguage = services.Settings.Language;
         _onboardingTheme = services.Settings.Theme;
+        _interfaceScale = services.Settings.InterfaceScale;
         _consentAutomaticUpdates = services.Settings.ConsentAutomaticUpdates;
         _consentNotifications = services.Settings.ConsentNotifications;
         _consentThemes = services.Settings.ConsentThemes;
@@ -295,6 +297,36 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSettingsDetail))]
     private bool _isCompact;
+
+    /// <summary>Shell width in scaled layout units, reported by the root view (issue #477).</summary>
+    [ObservableProperty]
+    private double _layoutWidth;
+
+    /// <summary>Interface scale in percent; the root view applies it as a layout transform.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InterfaceScaleFactor))]
+    [NotifyPropertyChangedFor(nameof(InterfaceScaleTransform))]
+    private int _interfaceScale = AppSettings.DefaultInterfaceScale;
+
+    /// <summary>Layout multiplier for <see cref="InterfaceScale"/>; 1.0 is 100%.</summary>
+    public double InterfaceScaleFactor => AppSettings.ClampInterfaceScale(InterfaceScale) / 100.0;
+
+    /// <summary>
+    /// Layout transform for the shell root. A new instance per change makes the
+    /// <c>LayoutTransformControl</c> re-measure instead of relying on a mutated matrix.
+    /// </summary>
+    public ITransform InterfaceScaleTransform => new ScaleTransform(InterfaceScaleFactor, InterfaceScaleFactor);
+
+    partial void OnLayoutWidthChanged(double value) => RefreshCompact();
+
+    partial void OnInterfaceScaleChanged(int value) => RefreshCompact();
+
+    /// <summary>
+    /// The scale shrinks the unscaled layout width, so the sidebar/bottom switch must compare the
+    /// effective width instead of the window width.
+    /// </summary>
+    private void RefreshCompact() =>
+        IsCompact = LayoutMetrics.IsCompact(LayoutMetrics.EffectiveWidth(LayoutWidth, InterfaceScaleFactor));
 
     [ObservableProperty]
     private ProfileItem? _selectedProfile;

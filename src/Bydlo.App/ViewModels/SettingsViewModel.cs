@@ -58,6 +58,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var s = Services.Settings;
         _theme = s.Theme;
         _reduceMotion = s.ReduceMotion;
+        _interfaceScale = s.InterfaceScale;
         _language = s.Language;
         _mockMode = Services.IsMock;
         _mockScenario = s.MockScenario;
@@ -93,6 +94,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var s = Services.Settings;
         Theme = s.Theme;
         ReduceMotion = s.ReduceMotion;
+        InterfaceScale = s.InterfaceScale;
         Language = s.Language;
         MockMode = Services.IsMock;
         MockScenario = s.MockScenario;
@@ -131,6 +133,31 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         Services.Settings.ReduceMotion = value;
         Persist();
+    }
+
+    /// <summary>Selectable interface scales in percent (issue #477).</summary>
+    public static IReadOnlyList<int> InterfaceScales { get; } = AppSettings.InterfaceScaleSteps;
+
+    [ObservableProperty] private int _interfaceScale;
+
+    partial void OnInterfaceScaleChanged(int value)
+    {
+        var clamped = AppSettings.ClampInterfaceScale(value);
+        if (clamped != value)
+        {
+            InterfaceScale = clamped;
+            return;
+        }
+        Services.Settings.InterfaceScale = clamped;
+        Shell.InterfaceScale = clamped;
+        Persist();
+    }
+
+    [RelayCommand]
+    private void ResetInterfaceScale()
+    {
+        InterfaceScale = AppSettings.DefaultInterfaceScale;
+        Shell.ShowToast(L["settings.scale.reset.done"]);
     }
 
     public bool AutostartSupported => new Bydlo.Platform.AutostartService().IsSupported;

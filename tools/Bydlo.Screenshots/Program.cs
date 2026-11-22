@@ -26,7 +26,7 @@ if (args.Contains("--verify-overhaul", StringComparer.Ordinal) || args.Contains(
 }
 if (args.Contains("--verify-server-groups", StringComparer.Ordinal) || args.Contains("--verify-simple-ui", StringComparer.Ordinal) || args.Contains("--verify-wizard", StringComparer.Ordinal) || args.Contains("--verify-backup", StringComparer.Ordinal) || args.Contains("--verify-import", StringComparer.Ordinal) || args.Contains("--verify-share", StringComparer.Ordinal) ||
     args.Contains("--verify-updates", StringComparer.Ordinal) || args.Contains("--verify-speed", StringComparer.Ordinal) || args.Contains("--verify-themes", StringComparer.Ordinal) || args.Contains("--verify-theme-gallery", StringComparer.Ordinal) || args.Contains("--verify-active-connections", StringComparer.Ordinal) || args.Contains("--verify-routing-rules", StringComparer.Ordinal) || args.Contains("--verify-routing-picker", StringComparer.Ordinal) || args.Contains("--verify-connect-switch", StringComparer.Ordinal) ||
-    args.Contains("--verify-zapret-selection", StringComparer.Ordinal) || args.Contains("--verify-desktop", StringComparer.Ordinal) || args.Contains("--verify-bundled-engines", StringComparer.Ordinal) || args.Contains("--verify-contributors", StringComparer.Ordinal) || args.Contains("--verify-elevation", StringComparer.Ordinal) ||
+    args.Contains("--verify-zapret-selection", StringComparer.Ordinal) || args.Contains("--verify-desktop", StringComparer.Ordinal) || args.Contains("--verify-bundled-engines", StringComparer.Ordinal) || args.Contains("--verify-contributors", StringComparer.Ordinal) || args.Contains("--verify-elevation", StringComparer.Ordinal) || args.Contains("--verify-interface-scale", StringComparer.Ordinal) ||
     Environment.GetEnvironmentVariable("BYDLO_DATA_DIR") is null)
 {
     Environment.SetEnvironmentVariable("BYDLO_DATA_DIR", Path.Combine(output, "appdata"));
@@ -157,6 +157,11 @@ if (args.Contains("--verify-connect-switch", StringComparer.Ordinal))
 if (args.Contains("--verify-import", StringComparer.Ordinal))
 {
     ImportVerification.Run(shell, output);
+    return;
+}
+if (args.Contains("--verify-interface-scale", StringComparer.Ordinal))
+{
+    InterfaceScaleVerification.Run(shell, output);
     return;
 }
 
