@@ -380,6 +380,7 @@ public sealed class TgWsProxyServer : IAsyncDisposable
         {
             var buffer = new byte[ReadBufferSize];
             var plain = new byte[ReadBufferSize];
+            var lengths = new List<int>();
             try
             {
                 while (true)
@@ -399,14 +400,11 @@ public sealed class TgWsProxyServer : IAsyncDisposable
                     up += n;
                     upPackets++;
                     crypto.Upstream(buffer.AsSpan(0, n), plain.AsSpan(0, n));
-                    var parts = splitter.Split(buffer.AsSpan(0, n), plain.AsSpan(0, n));
-                    if (parts.Count == 1)
+                    // Packets stay in the splitter's buffer; frames are built in the socket's own buffer (#359).
+                    var packets = splitter.SplitInto(buffer.AsSpan(0, n), plain.AsSpan(0, n), lengths);
+                    if (lengths.Count > 0)
                     {
-                        await ws.SendAsync(parts[0], session.Token).ConfigureAwait(false);
-                    }
-                    else if (parts.Count > 1)
-                    {
-                        await ws.SendBatchAsync(parts, session.Token).ConfigureAwait(false);
+                        await ws.SendPacketsAsync(packets, lengths, session.Token).ConfigureAwait(false);
                     }
                 }
             }

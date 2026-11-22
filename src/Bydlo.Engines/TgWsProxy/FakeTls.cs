@@ -348,6 +348,7 @@ internal static class FakeTls
 internal sealed class FakeTlsStream(Stream inner) : Stream
 {
     private readonly byte[] _header = new byte[5];
+    private byte[]? _record;
     private int _recordLeft;
 
     public override bool CanRead => true;
@@ -380,7 +381,12 @@ internal sealed class FakeTlsStream(Stream inner) : Stream
             {
                 if (length > 0)
                 {
-                    await inner.ReadExactlyAsync(new byte[length], cancellationToken).ConfigureAwait(false);
+                    _record ??= new byte[5 + FakeTls.MaxRecordPayload];
+                    await inner.ReadExactlyAsync(_record.AsMemory(0, Math.Min(length, _record.Length)), cancellationToken).ConfigureAwait(false);
+                    if (length > _record.Length)
+                    {
+                        await inner.ReadExactlyAsync(new byte[length - _record.Length], cancellationToken).ConfigureAwait(false);
+                    }
                 }
 
                 continue;
@@ -404,8 +410,29 @@ internal sealed class FakeTlsStream(Stream inner) : Stream
         return n;
     }
 
-    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) =>
-        await inner.WriteAsync(Wrap(buffer.Span), cancellationToken).ConfigureAwait(false);
+    /// <summary>
+    /// Writes records through one reusable buffer instead of allocating the wrapped payload (issue #359).
+    /// The bytes on the wire are identical to <see cref="Wrap"/>.
+    /// </summary>
+    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        _record ??= new byte[5 + FakeTls.MaxRecordPayload];
+        for (var offset = 0; offset < buffer.Length; offset += FakeTls.MaxRecordPayload)
+        {
+            var length = WriteRecord(buffer.Span.Slice(offset, Math.Min(FakeTls.MaxRecordPayload, buffer.Length - offset)), _record);
+            await inner.WriteAsync(_record.AsMemory(0, length), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static int WriteRecord(ReadOnlySpan<byte> chunk, Span<byte> output)
+    {
+        output[0] = FakeTls.RecordApplicationData;
+        output[1] = 0x03;
+        output[2] = 0x03;
+        BinaryPrimitives.WriteUInt16BigEndian(output[3..], (ushort)chunk.Length);
+        chunk.CopyTo(output[5..]);
+        return 5 + chunk.Length;
+    }
 
     public static byte[] Wrap(ReadOnlySpan<byte> data)
     {
