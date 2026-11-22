@@ -23,7 +23,11 @@ public interface ITgNetwork
 /// <summary>The local listening socket. <see cref="AcceptAsync"/> throws once the socket is dead.</summary>
 public interface ITgListener : IDisposable
 {
-    Task<(Stream Stream, string Label)> AcceptAsync(CancellationToken ct);
+    /// <summary>
+    /// Waits for the next client. <c>RemoteAddress</c> is the peer address, or null when the transport
+    /// cannot report it; the PROXY protocol trust check refuses a header from an unknown peer.
+    /// </summary>
+    Task<(Stream Stream, string Label, IPAddress? RemoteAddress)> AcceptAsync(CancellationToken ct);
 }
 
 /// <summary>Real sockets. Every call checks <see cref="NetworkSafetyGuard"/>, so nothing connects in development.</summary>
@@ -114,13 +118,14 @@ public sealed class SystemTgNetwork(int bufferSize = 256 * 1024) : ITgNetwork
 
 internal sealed class SystemTgListener(TcpListener listener, int bufferSize) : ITgListener
 {
-    public async Task<(Stream Stream, string Label)> AcceptAsync(CancellationToken ct)
+    public async Task<(Stream Stream, string Label, IPAddress? RemoteAddress)> AcceptAsync(CancellationToken ct)
     {
         var socket = await listener.AcceptSocketAsync(ct).ConfigureAwait(false);
         socket.NoDelay = true;
         socket.ReceiveBufferSize = bufferSize;
         socket.SendBufferSize = bufferSize;
-        return (new NetworkStream(socket, ownsSocket: true), socket.RemoteEndPoint?.ToString() ?? "?");
+        var remote = socket.RemoteEndPoint as IPEndPoint;
+        return (new NetworkStream(socket, ownsSocket: true), remote?.ToString() ?? "?", remote?.Address);
     }
 
     public void Dispose()

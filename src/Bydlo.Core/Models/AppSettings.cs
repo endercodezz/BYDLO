@@ -311,4 +311,13 @@ public sealed class TgWsProxySettings
 
     /// <summary>Own Cloudflare-proxied domains for the fallback. Empty uses the list maintained by Flowseal.</summary>
     public List<string> CfProxyDomains { get; set; } = [];
+
+    /// <summary>
+    /// Accept a PROXY protocol v1 header before the client handshake (upstream <c>--proxy-protocol</c>).
+    /// Only for a listener placed behind a trusted reverse proxy; off by default.
+    /// </summary>
+    public bool ProxyProtocol { get; set; }
+
+    /// <summary>Peers allowed to send the header. Empty means loopback only, the default.</summary>
+    public List<string> ProxyProtocolTrustedSources { get; set; } = ["127.0.0.1", "::1"];
 }

@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Bydlo.Core.Models;
@@ -280,6 +281,8 @@ public static class BackupArchive
             !Enum.IsDefined(s.Routing.Preset) || !Enum.IsDefined(s.Routing.RemoteDnsTransport) || !Enum.IsDefined(s.Routing.DirectDnsTransport) ||
             s.Zapret.TestTargets is null || s.Zapret.GameFilter is not ("disabled" or "all" or "tcp" or "udp") ||
             s.TgWsProxy.DcIps is null || s.TgWsProxy.CfProxyDomains is null || s.TgWsProxy.Host is null || s.TgWsProxy.FakeTlsDomain is null ||
+            s.TgWsProxy.ProxyProtocolTrustedSources is null ||
+            s.TgWsProxy.ProxyProtocolTrustedSources.Any(value => !IPAddress.TryParse(value ?? "", out _)) ||
             s.LocalProxyUsername is null ||
             s.LocalProxyPort is < 1 or > 65534 || s.TgWsProxy.Port is < 1 or > 65535 ||
             !Enum.IsDefined(s.Theme) || !Enum.IsDefined(s.Mode) || !Enum.IsDefined(s.MockScenario) || !Enum.IsDefined(s.IpCheckProvider) ||
