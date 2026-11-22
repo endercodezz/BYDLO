@@ -417,7 +417,11 @@ internal sealed class PrefixedStream(byte[] prefix, Stream inner) : Stream
 
     public override void SetLength(long value) => throw new NotSupportedException();
 
-    public override ValueTask DisposeAsync() => inner.DisposeAsync();
+    public override async ValueTask DisposeAsync()
+    {
+        await inner.DisposeAsync().ConfigureAwait(false);
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
 
     protected override void Dispose(bool disposing)
     {
