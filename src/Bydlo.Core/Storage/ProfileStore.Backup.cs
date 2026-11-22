@@ -12,7 +12,7 @@ public sealed partial class ProfileStore
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var data = new BackupData { Settings = BackupArchive.Clone(settings), ToolSecrets = await CaptureToolSecretsAsync(ct).ConfigureAwait(false) };
+            var data = new BackupData { Settings = BackupCopy.Copy(settings), ToolSecrets = await CaptureToolSecretsAsync(ct).ConfigureAwait(false) };
             data.Settings.EnginePaths.Clear();
             data.Settings.Zapret.InstallPath = null;
             foreach (var profile in _doc.Profiles)
@@ -31,7 +31,7 @@ public sealed partial class ProfileStore
                 {
                     throw new Security.SecretAccessException(secretId);
                 }
-                data.Profiles.Add(new(BackupArchive.Clone(profile), loaded));
+                data.Profiles.Add(new(BackupCopy.Copy(profile), loaded));
             }
             foreach (var sub in _doc.Subscriptions)
             {
@@ -48,10 +48,10 @@ public sealed partial class ProfileStore
                 {
                     throw new Security.SecretAccessException($"subscription:{sub.Id}");
                 }
-                data.Subscriptions.Add(new(BackupArchive.Clone(sub), url));
+                data.Subscriptions.Add(new(BackupCopy.Copy(sub), url));
             }
             foreach (var chain in _doc.Chains)
-            { data.Chains.Add(BackupArchive.Clone(chain)); }
+            { data.Chains.Add(BackupCopy.Copy(chain)); }
             return data;
         }
         finally { _gate.Release(); }
@@ -60,7 +60,7 @@ public sealed partial class ProfileStore
     /// <summary>Restores credentials and the document together; rolls back on a storage failure.</summary>
     public async Task RestoreBackupAsync(BackupData data, BackupImportMode mode, CancellationToken ct = default)
     {
-        data = BackupArchive.Clone(data);
+        data = BackupCopy.Copy(data);
         BackupArchive.Validate(data);
         // Old archives keep XHTTP headers in plain options: move them to secrets
         // before anything is persisted (issue #338).

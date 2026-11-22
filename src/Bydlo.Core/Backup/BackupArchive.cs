@@ -96,7 +96,7 @@ public static class BackupArchive
 
     public static AppSettings ImportSettings(BackupData data, AppSettings current, BackupImportMode mode)
     {
-        var settings = Clone(data.Settings);
+        var settings = BackupCopy.Copy(data.Settings);
         // Device integration is never activated or changed by restoring a backup.
         settings.EnginePaths = new(current.EnginePaths, StringComparer.OrdinalIgnoreCase);
         settings.Zapret.InstallPath = current.Zapret.InstallPath;
@@ -134,13 +134,6 @@ public static class BackupArchive
 
     private static List<string> Union(List<string> current, List<string> incoming) =>
         [.. current.Concat(incoming).Distinct(StringComparer.OrdinalIgnoreCase)];
-
-    internal static T Clone<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, JsonDefaults.Options.Info<T>());
-        try { return JsonSerializer.Deserialize(bytes, JsonDefaults.Options.Info<T>())!; }
-        finally { CryptographicOperations.ZeroMemory(bytes); }
-    }
 
     /// <summary>
     /// Secret keys a profile must carry (issue #344). An empty list means the protocol
