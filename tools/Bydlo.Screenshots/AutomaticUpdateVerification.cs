@@ -83,6 +83,8 @@ internal static class AutomaticUpdateVerification
     /// </summary>
     private static void VerifyManualGuidance(MainViewModel shell, string output)
     {
+        // The screenshots show the plain .deb text; a configured apt source is a separate case (issue #488).
+        shell.Services.AptRepositoryConfigured = false;
         foreach (var kind in new[]
         {
             AppInstallKind.Debian, AppInstallKind.Arch, AppInstallKind.Nix, AppInstallKind.Portable, AppInstallKind.Unknown,
