@@ -114,6 +114,7 @@ public sealed partial class MainViewModel : ViewModelBase
         Loc.Instance.PropertyChanged += (_, _) => OnNoticeLanguageChanged();
         RefreshCrashReports();
         ShowStoreRecoveryToasts();
+        ShowUpdateRecoveryToast();
         _ = RunStartupChecksAsync();
         services.StartSubscriptionAutoRefresh(Connections.RunAutoRefreshAsync);
     }
@@ -138,6 +139,30 @@ public sealed partial class MainViewModel : ViewModelBase
             settings == Bydlo.Core.Storage.StoreLoadStatus.ResetEmpty)
         {
             ShowToast(L["store.reset"], isError: true, localizationKey: "store.reset");
+        }
+    }
+
+    private UpdateRecoveryStartup? _shownUpdateRecovery;
+
+    /// <summary>
+    /// Explains an interrupted or unconfirmed update. Called once at startup and again after the readiness
+    /// confirmation, which may turn the state into <see cref="UpdateRecoveryStartup.Blocked"/> (issue #412).
+    /// </summary>
+    public void ShowUpdateRecoveryToast()
+    {
+        var startup = Services.UpdateRecovery.Startup;
+        if (startup == _shownUpdateRecovery) { return; }
+        _shownUpdateRecovery = startup;
+        switch (startup)
+        {
+            case UpdateRecoveryStartup.Blocked:
+                ShowToast(Loc.T("update.recovery.blocked", Bydlo.Core.AppVersion.Current), isError: true,
+                    localizationKey: "update.recovery.blocked", localizationArguments: [Bydlo.Core.AppVersion.Current]);
+                break;
+            case UpdateRecoveryStartup.Interrupted:
+                ShowToast(Loc.T("update.recovery.interrupted", Bydlo.Core.AppVersion.Current), isError: true,
+                    localizationKey: "update.recovery.interrupted", localizationArguments: [Bydlo.Core.AppVersion.Current]);
+                break;
         }
     }
 

@@ -292,6 +292,8 @@ public sealed class FirstRunConsentTests
     {
         public bool IsInstalled => true;
 
+        public string? PendingVersion => "0.4.4";
+
         public int Downloads { get; private set; }
 
         public int Applied { get; private set; }

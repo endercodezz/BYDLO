@@ -22,6 +22,9 @@ internal sealed class PackagedAppUpdater(string dataDirectory, HttpClient http) 
     public bool IsInstalled => !File.Exists(Path.Combine(AppContext.BaseDirectory, "portable.txt")) &&
         AutomaticAppUpdater.HasSeparateDataDirectory(AppContext.BaseDirectory, dataDirectory) && _manager.IsInstalled;
 
+    /// <summary>Version Velopack will install on the next exit; the recovery journal records it (issue #412).</summary>
+    public string? PendingVersion => _manager.UpdatePendingRestart?.Version?.ToString();
+
     public async Task<bool> DownloadLatestAsync(IProgress<int>? progress, CancellationToken ct)
     {
         NetworkSafetyGuard.EnsureAllowed("download application update");
