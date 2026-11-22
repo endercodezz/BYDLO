@@ -348,7 +348,12 @@ internal static class FakeTls
 internal sealed class FakeTlsStream(Stream inner) : Stream
 {
     private readonly byte[] _header = new byte[5];
+    /// <summary>Write-side record buffer; only <see cref="WriteAsync(ReadOnlyMemory{byte}, CancellationToken)"/> touches it.</summary>
     private byte[]? _record;
+
+    /// <summary>Read-side scratch for skipped ChangeCipherSpec payloads (a record length is at most 65535).</summary>
+    private byte[]? _discard;
+
     private int _recordLeft;
 
     public override bool CanRead => true;
@@ -381,12 +386,9 @@ internal sealed class FakeTlsStream(Stream inner) : Stream
             {
                 if (length > 0)
                 {
-                    _record ??= new byte[5 + FakeTls.MaxRecordPayload];
-                    await inner.ReadExactlyAsync(_record.AsMemory(0, Math.Min(length, _record.Length)), cancellationToken).ConfigureAwait(false);
-                    if (length > _record.Length)
-                    {
-                        await inner.ReadExactlyAsync(new byte[length - _record.Length], cancellationToken).ConfigureAwait(false);
-                    }
+                    // Reads and writes run concurrently, so the discarded CCS payload never uses the write buffer.
+                    _discard ??= new byte[ushort.MaxValue];
+                    await inner.ReadExactlyAsync(_discard.AsMemory(0, length), cancellationToken).ConfigureAwait(false);
                 }
 
                 continue;
