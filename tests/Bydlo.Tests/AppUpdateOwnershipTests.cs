@@ -352,6 +352,8 @@ public sealed class AppUpdateOwnershipTests
     {
         public bool IsInstalled { get; set; } = true;
 
+        public string? PendingVersion { get; set; } = "0.4.4";
+
         public int Applied { get; private set; }
 
         public Exception? ApplyError { get; set; }

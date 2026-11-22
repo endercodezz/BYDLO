@@ -71,6 +71,7 @@ internal sealed partial class CoreJsonContext : JsonSerializerContext;
 [JsonSerializable(typeof(ProxyChain))]
 [JsonSerializable(typeof(ProfileDocument))]
 [JsonSerializable(typeof(BackupData))]
+[JsonSerializable(typeof(UpdateRecoveryJournal))]
 internal sealed partial class CoreStoreJsonContext : JsonSerializerContext;
 
 /// <summary>De-duplication key of an imported profile (property order is the serialized identity).</summary>

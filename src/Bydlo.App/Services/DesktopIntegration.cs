@@ -145,6 +145,9 @@ public sealed class DesktopIntegration : IDisposable
         if (_startupHandled) { return; }
         _startupHandled = true;
         var services = _shell.Services;
+        // The window is up: this is the local readiness confirmation of a freshly installed version (issue #412).
+        services.ConfirmUpdateReadiness();
+        _shell.ShowUpdateRecoveryToast();
         if (services.Args.Contains("--autostart", StringComparer.Ordinal) &&
             services.Settings.OnboardingCompleted && services.Settings.MinimizeToTray &&
             _tray.NativeMenuExporter is not null) { _window.Hide(); }

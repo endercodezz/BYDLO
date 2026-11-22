@@ -6,6 +6,10 @@ namespace Bydlo.Core.Diagnostics;
 public interface IAppUpdateBackend
 {
     bool IsInstalled { get; }
+
+    /// <summary>Version of the package that installs on the next exit, if one is downloaded (issue #412).</summary>
+    string? PendingVersion { get; }
+
     Task<bool> DownloadLatestAsync(IProgress<int>? progress, CancellationToken ct);
     void ApplyOnExit();
 }
@@ -33,6 +37,12 @@ public sealed class AutomaticAppUpdater(Func<IAppUpdateBackend> createBackend, T
 
     /// <summary>Who owns updates for this copy. Only a Velopack install may update itself.</summary>
     public AppUpdateOwner Owner => AppUpdateOwnership.OwnerOf(InstallKind);
+
+    /// <summary>
+    /// Local recovery protocol (issue #412). When it is set, a package is applied only after the journal and
+    /// the user-data snapshot exist, and a failed confirmation stops automatic updates.
+    /// </summary>
+    public UpdateRecovery? Recovery { get; set; }
 
     /// <summary>Single user-visible state shared by the release check and the packaged updater.</summary>
     public AppUpdateState State { get; private set; }
@@ -119,6 +129,8 @@ public sealed class AutomaticAppUpdater(Func<IAppUpdateBackend> createBackend, T
     public Task<bool> DownloadNowAsync(AppSettings settings, bool blocked,
         IProgress<int>? progress = null, CancellationToken ct = default)
     {
+        // An explicit request is the only way out of a failed-confirmation block (issue #412).
+        Recovery?.ClearBlock();
         if (!AllowsUpdates(settings) || blocked || _busy) { return Task.FromResult(false); }
         return DownloadAsync(settings, progress, ct);
     }
@@ -126,9 +138,11 @@ public sealed class AutomaticAppUpdater(Func<IAppUpdateBackend> createBackend, T
     /// <summary>
     /// The packaged update needs both the explicit GitHub consent and the download opt-in (issue #438).
     /// Revoking either one stops future downloads and blocks a package that is already staged.
+    /// A failed confirmation of the previous version also stops automatic updates (issue #412).
     /// </summary>
-    private static bool AllowsUpdates(AppSettings settings) =>
-        settings.AutoUpdateApp && FeatureConsent.From(settings).Allows(OptionalFeature.AutomaticUpdates);
+    private bool AllowsUpdates(AppSettings settings) =>
+        settings.AutoUpdateApp && FeatureConsent.From(settings).Allows(OptionalFeature.AutomaticUpdates) &&
+        Recovery?.AutoApplyBlocked != true;
 
     private async Task<bool> DownloadAsync(AppSettings settings, IProgress<int>? progress, CancellationToken ct)
     {
@@ -165,6 +179,12 @@ public sealed class AutomaticAppUpdater(Func<IAppUpdateBackend> createBackend, T
                 State = AvailableVersion is null ? AppUpdateState.Idle : AppUpdateState.Available;
                 return false;
             }
+            // A package without a recovery journal and snapshot is never applied (issue #412).
+            if (Recovery is not null && !Recovery.Stage(backend.PendingVersion))
+            {
+                State = AppUpdateState.Deferred;
+                return false;
+            }
             // Turning the opt-in off during the download keeps the package but never applies it.
             State = settings.AutoUpdateApp && !ct.IsCancellationRequested
                 ? AppUpdateState.Ready
@@ -190,6 +210,11 @@ public sealed class AutomaticAppUpdater(Func<IAppUpdateBackend> createBackend, T
         }
         try
         {
+            // Without a durable journal and snapshot the package stays downloaded (issue #412).
+            if (Recovery is not null && (!Recovery.CanApply(_backend!.PendingVersion) || !Recovery.MarkApplying()))
+            {
+                return AppUpdateApplyResult.Deferred;
+            }
             _backend!.ApplyOnExit();
         }
         catch (Exception)
