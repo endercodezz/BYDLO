@@ -38,6 +38,9 @@ public sealed class AppServices
         Http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         Http.DefaultRequestHeaders.UserAgent.ParseAdd(Bydlo.Core.AppVersion.UserAgent);
         Lock = EngineLock.LoadEmbedded();
+        InstallKind = AppInstallLocator.CreateDefault().Detect(AppContext.BaseDirectory, Environment.ProcessPath);
+        UpdateRecovery = new UpdateRecovery(Paths.DataDirectory, AppContext.BaseDirectory, InstallKind,
+            Bydlo.Core.AppVersion.Current, EngineLock.BundleVersion);
         Installer = new EngineInstaller(Http, Lock, Paths.EnginesDirectory);
         Locator = new EngineLocator(Installer, PlatformInfo.Current);
         ZapretFirewall = new ZapretFirewall(Runner, Installer.UserDataDirectory);
@@ -60,8 +63,11 @@ public sealed class AppServices
         AutomaticUpdates = new(() => new PackagedAppUpdater(Paths.DataDirectory, Http))
         {
             // Package markers decide who owns updates; a writable path alone never enables the built-in updater.
-            InstallKind = AppInstallLocator.CreateDefault().Detect(AppContext.BaseDirectory, Environment.ProcessPath),
+            InstallKind = InstallKind,
+            Recovery = UpdateRecovery,
         };
+        // Read-only probe of /etc/apt: the app never runs apt and never writes to system files (issue #488).
+        AptRepositoryConfigured = OperatingSystem.IsLinux() && AptRepositorySource.IsConfigured();
     }
 
     public string[] Args { get; }
@@ -137,6 +143,18 @@ public sealed class AppServices
 
     public AutomaticAppUpdater AutomaticUpdates { get; }
 
+    /// <summary>How this copy was installed (issue #413).</summary>
+    public AppInstallKind InstallKind { get; }
+
+    /// <summary>Local update recovery journal and readiness confirmation (issue #412).</summary>
+    public UpdateRecovery UpdateRecovery { get; }
+
+    /// <summary>
+    /// Whether an apt source for the BYDLO repository is configured (issue #488). Detected once at
+    /// startup; tests and the headless UI verification override it.
+    /// </summary>
+    public bool AptRepositoryConfigured { get; set; }
+
     /// <summary>Whether privileged engines are delegated to the installed helper.</summary>
     public bool UsesPrivilegedHelper => HelperManagement.IsSupported && !Privileges.IsElevated &&
         !IsMock && !NetworkSafetyGuard.IsLocked && HelperManagement.IsInstalled;
@@ -147,6 +165,8 @@ public sealed class AppServices
     public static async Task<AppServices> CreateAsync(string[] args, IPrivilegeService? privileges = null)
     {
         var s = new AppServices(args, privileges);
+        // Recovery runs before any user data is read: a snapshot restored here is what the app then loads (issue #412).
+        s.UpdateRecovery.PrepareStartup();
         var firstRun = !File.Exists(s.Paths.SettingsFile);
         s.Settings = await s.SettingsStore.LoadAsync().ConfigureAwait(false);
         if (firstRun)
@@ -183,6 +203,31 @@ public sealed class AppServices
     }
 
     public Task SaveSettingsAsync() => SettingsStore.SaveAsync(Settings);
+
+    /// <summary>
+    /// Local readiness confirmation for a freshly installed version (issue #412). Called once the UI is up;
+    /// it only inspects local state and never starts a tunnel, an engine, a driver or a network request.
+    /// </summary>
+    public void ConfirmUpdateReadiness()
+    {
+        if (!UpdateRecovery.IsPending) { return; }
+        var readiness = new UpdateReadiness(
+            uiStarted: true,
+            userDataLoaded: IsUserDataLoaded(SettingsStore.LoadStatus) && IsUserDataLoaded(Profiles.LoadStatus),
+            componentsConsistent: UpdateRecovery.ComponentsConsistent(Bydlo.Core.AppVersion.Current, EngineLock.BundleVersion),
+            helperCompatible: !HelperManagement.IsOutdated(ExpectedHelperBuild));
+        var result = UpdateRecovery.Confirm(readiness);
+        Log.Info("update", $"Update readiness: {result}. Phase: {UpdateRecovery.Journal?.Phase}. " +
+            $"Failed checks: {string.Join(',', readiness.Failures)}. Notes: {string.Join(',', readiness.Notes)}.");
+        if (result == UpdateRecoveryConfirmation.RolledBack)
+        {
+            Log.Error("update", "The new version did not confirm readiness; automatic updates are paused.");
+        }
+    }
+
+    /// <summary>A missing file is fine; a reset or unreadable one means the new version did not load user data.</summary>
+    private static bool IsUserDataLoaded(StoreLoadStatus status) =>
+        status is StoreLoadStatus.Ok or StoreLoadStatus.Missing or StoreLoadStatus.RecoveredFromBackup;
 
     public async Task RestoreBackupAsync(Bydlo.Core.Backup.BackupData data, Bydlo.Core.Backup.BackupImportMode mode)
     {

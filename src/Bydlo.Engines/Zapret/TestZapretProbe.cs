@@ -9,7 +9,7 @@ using Bydlo.Core.Security;
 namespace Bydlo.Engines.Zapret;
 
 /// <summary>
-/// Managed port of the standard HTTP/TLS suite in Flowseal Test Zapret 1.10.3 (MIT).
+/// Managed port of the standard HTTP/TLS suite in Flowseal Test Zapret 1.10.4 (MIT).
 /// The interactive upstream process/ipset manager is deliberately not executed.
 /// Each curl is owned by IProcessRunner, with real response codes and measured successful latency.
 /// </summary>

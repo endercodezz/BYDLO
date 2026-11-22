@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Bydlo.Core.Models;
@@ -32,31 +34,108 @@ public static class BackupArchive
     public const int MaximumFileSize = 32 * 1024 * 1024;
     internal const int Overhead = 8 + 16 + 12 + 16;
 
-    public static BackupImportSession OpenImport(byte[] file, string password) => BackupImportSession.Open(file, password);
+    public static BackupImportSession OpenImport(byte[] file, string password) => BackupImportSession.Open(file, password, copy: true);
+
+    /// <summary>
+    /// Opens an archive read with <see cref="ReadFileAsync"/>. Ownership of <paramref name="file"/>
+    /// moves to the session: it is not copied again and is cleared when the session is disposed (issue #394).
+    /// </summary>
+    public static BackupImportSession OpenImportOwned(byte[] file, string password) => BackupImportSession.Open(file, password, copy: false);
+
+    /// <summary>
+    /// Reads an archive with a hard size limit (issue #394). A stream with a known length gets one
+    /// exactly sized buffer after the limit check; an unknown length grows geometrically but never
+    /// past <see cref="MaximumFileSize"/> + 1 bytes.
+    /// </summary>
+    public static async Task<byte[]> ReadFileAsync(Stream stream, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        long? known = null;
+        try { if (stream.CanSeek) { known = stream.Length - stream.Position; } }
+        catch (NotSupportedException) { }
+        if (known is { } length)
+        {
+            if (length > MaximumFileSize) { throw new InvalidDataException("Backup is too large."); }
+            var exact = new byte[length];
+            try { await stream.ReadExactlyAsync(exact, ct).ConfigureAwait(false); }
+            catch (EndOfStreamException ex) { throw new InvalidDataException("Backup changed while reading.", ex); }
+            var probe = new byte[1];
+            if (await stream.ReadAsync(probe, ct).ConfigureAwait(false) != 0)
+            { throw new InvalidDataException("Backup changed while reading."); }
+            return exact;
+        }
+        var buffer = new byte[Math.Min(64 * 1024, MaximumFileSize + 1)];
+        var count = 0;
+        while (true)
+        {
+            if (count == buffer.Length)
+            {
+                if (buffer.Length > MaximumFileSize) { throw new InvalidDataException("Backup is too large."); }
+                Array.Resize(ref buffer, (int)Math.Min((long)buffer.Length * 2, MaximumFileSize + 1L));
+            }
+            var read = await stream.ReadAsync(buffer.AsMemory(count), ct).ConfigureAwait(false);
+            if (read == 0) { break; }
+            count += read;
+            if (count > MaximumFileSize) { throw new InvalidDataException("Backup is too large."); }
+        }
+        return count == buffer.Length ? buffer : buffer.AsSpan(0, count).ToArray();
+    }
 
     public static byte[] Encrypt(BackupData data, string password)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
         Validate(data);
-        var plaintext = JsonSerializer.SerializeToUtf8Bytes(data, JsonDefaults.Options.Info<BackupData>());
+        // Cheap lower bound first: large raw configs fail before any buffer is allocated.
+        if (MinimumPayloadSize(data) > MaximumFileSize - Overhead) { throw new InvalidDataException("Backup is too large."); }
+        // Serialize straight after the header into one pooled buffer, enforcing the limit while
+        // writing, then encrypt in place (issue #394). The buffer holds plaintext until encrypted,
+        // so it is always cleared before it returns to the pool.
+        using var buffer = new BoundedBuffer(Overhead, MaximumFileSize);
         byte[]? key = null;
         try
         {
-            if (plaintext.Length > MaximumFileSize - Overhead) { throw new InvalidDataException("Backup is too large."); }
-            var output = new byte[Overhead + plaintext.Length];
+            using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = JsonDefaults.Options.Encoder, Indented = JsonDefaults.Options.WriteIndented }))
+            {
+                JsonSerializer.Serialize(writer, data, JsonDefaults.Options.Info<BackupData>());
+            }
+            var total = buffer.WrittenCount;
+            var output = buffer.Array.AsSpan(0, total);
             Header.CopyTo(output);
-            RandomNumberGenerator.Fill(output.AsSpan(8, 16));
-            RandomNumberGenerator.Fill(output.AsSpan(24, 12));
-            key = Rfc2898DeriveBytes.Pbkdf2(password, output.AsSpan(8, 16), Iterations, HashAlgorithmName.SHA256, 32);
+            RandomNumberGenerator.Fill(output.Slice(8, 16));
+            RandomNumberGenerator.Fill(output.Slice(24, 12));
+            key = Rfc2898DeriveBytes.Pbkdf2(password, output.Slice(8, 16), Iterations, HashAlgorithmName.SHA256, 32);
             using var aes = new AesGcm(key, 16);
-            aes.Encrypt(output.AsSpan(24, 12), plaintext, output.AsSpan(Overhead), output.AsSpan(36, 16), output.AsSpan(0, 24));
-            return output;
+            var body = output[Overhead..];
+            aes.Encrypt(output.Slice(24, 12), body, body, output.Slice(36, 16), output[..24]);
+            return output.ToArray();
         }
         finally
         {
-            CryptographicOperations.ZeroMemory(plaintext);
             if (key is not null) { CryptographicOperations.ZeroMemory(key); }
         }
+    }
+
+    /// <summary>
+    /// Lower bound of the serialized size: every string value appears at least once in UTF-8.
+    /// Escaping and property names only add bytes, so exceeding the limit here is conclusive.
+    /// </summary>
+    internal static long MinimumPayloadSize(BackupData data)
+    {
+        long total = 0;
+        static long Bytes(string? value) => value is null ? 0 : System.Text.Encoding.UTF8.GetByteCount(value);
+        static long Dictionary(Dictionary<string, string>? values) =>
+            values?.Sum(entry => Bytes(entry.Key) + Bytes(entry.Value)) ?? 0;
+        foreach (var item in data.Profiles)
+        {
+            total += Dictionary(item.Secrets.Values) + Dictionary(item.Profile.Options)
+                + Bytes(item.Profile.Name) + Bytes(item.Profile.Host);
+        }
+        foreach (var sub in data.Subscriptions)
+        {
+            total += Bytes(sub.Url) + Bytes(sub.Subscription.Name)
+                + (sub.Subscription.SourceOptions?.Values.Sum(Dictionary) ?? 0);
+        }
+        return total + Dictionary(data.ToolSecrets.Values);
     }
 
     public static BackupData Decrypt(byte[] file, string password)
@@ -65,19 +144,37 @@ public static class BackupArchive
         if (file.Length < Overhead || file.Length > MaximumFileSize || !file.AsSpan(0, 8).SequenceEqual(Header))
         { throw new InvalidDataException("Unsupported backup."); }
         var key = Rfc2898DeriveBytes.Pbkdf2(password, file.AsSpan(8, 16), Iterations, HashAlgorithmName.SHA256, 32);
-        var plaintext = new byte[file.Length - Overhead];
+        try
+        {
+            return DecryptWith(key, file, plaintext =>
+            {
+                var data = JsonSerializer.Deserialize(plaintext.Span, JsonDefaults.Options.Info<BackupData>()) ?? throw new InvalidDataException("Invalid backup.");
+                Validate(data);
+                return data;
+            });
+        }
+        finally { CryptographicOperations.ZeroMemory(key); }
+    }
+
+    /// <summary>
+    /// Authenticates and decrypts into a pooled buffer that is cleared on every path. The reader only
+    /// sees plaintext after the tag has been verified and must not retain the span.
+    /// </summary>
+    internal static T DecryptWith<T>(byte[] key, byte[] archive, Func<ReadOnlyMemory<byte>, T> read)
+    {
+        var length = archive.Length - Overhead;
+        var rented = ArrayPool<byte>.Shared.Rent(Math.Max(length, 1));
+        var plaintext = rented.AsMemory(0, length);
         try
         {
             using var aes = new AesGcm(key, 16);
-            aes.Decrypt(file.AsSpan(24, 12), file.AsSpan(Overhead), file.AsSpan(36, 16), plaintext, file.AsSpan(0, 24));
-            var data = JsonSerializer.Deserialize(plaintext, JsonDefaults.Options.Info<BackupData>()) ?? throw new InvalidDataException("Invalid backup.");
-            Validate(data);
-            return data;
+            aes.Decrypt(archive.AsSpan(24, 12), archive.AsSpan(Overhead), archive.AsSpan(36, 16), plaintext.Span, archive.AsSpan(0, 24));
+            return read(plaintext);
         }
         finally
         {
-            CryptographicOperations.ZeroMemory(key);
-            CryptographicOperations.ZeroMemory(plaintext);
+            CryptographicOperations.ZeroMemory(plaintext.Span);
+            ArrayPool<byte>.Shared.Return(rented);
         }
     }
 
@@ -96,7 +193,7 @@ public static class BackupArchive
 
     public static AppSettings ImportSettings(BackupData data, AppSettings current, BackupImportMode mode)
     {
-        var settings = Clone(data.Settings);
+        var settings = BackupCopy.Copy(data.Settings);
         // Device integration is never activated or changed by restoring a backup.
         settings.EnginePaths = new(current.EnginePaths, StringComparer.OrdinalIgnoreCase);
         settings.Zapret.InstallPath = current.Zapret.InstallPath;
@@ -111,6 +208,8 @@ public static class BackupArchive
         settings.ConsentsInitialized = current.ConsentsInitialized;
         // Custom theme files live next to the data directory and are not part of the backup.
         settings.CustomThemeId = current.CustomThemeId;
+        // The interface scale is a display preference, so a restored value is snapped to a supported step.
+        settings.NormalizeInterfaceScale();
         settings.MigrateLegacyTheme();
         if (settings.Theme == ThemePreference.Custom && settings.CustomThemeId is null)
         {
@@ -134,13 +233,6 @@ public static class BackupArchive
 
     private static List<string> Union(List<string> current, List<string> incoming) =>
         [.. current.Concat(incoming).Distinct(StringComparer.OrdinalIgnoreCase)];
-
-    internal static T Clone<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, JsonDefaults.Options.Info<T>());
-        try { return JsonSerializer.Deserialize(bytes, JsonDefaults.Options.Info<T>())!; }
-        finally { CryptographicOperations.ZeroMemory(bytes); }
-    }
 
     /// <summary>
     /// Secret keys a profile must carry (issue #344). An empty list means the protocol
@@ -182,6 +274,12 @@ public static class BackupArchive
         if (data.Version != 1 || data.Settings is null || data.Profiles is null || data.Subscriptions is null || data.ToolSecrets?.Values is null || data.Chains is null)
         { throw new InvalidDataException("Invalid backup."); }
         var s = data.Settings;
+        // Every collection the import path enumerates must be present: a null list passed validation
+        // and threw later in ImportSettings or after it was persisted.
+        if (s.ServerGroups is null || s.Contributors is null ||
+            s.ServerGroups.Any(g => g is null || g.Id == Guid.Empty || g.Name is null || g.ProfileIds is null || g.ProbeUrl is null) ||
+            s.Contributors.Any(c => c is null || c.Login is null))
+        { throw new InvalidDataException("Invalid settings."); }
         if (s.Routing is null || s.DpiDefaults is null || s.Zapret is null || s.TgWsProxy is null || s.EnginePaths is null ||
             s.Routing.DirectDomains is null || s.Routing.ProxyDomains is null || s.Routing.BlockDomains is null ||
             s.Routing.DirectCidrs is null || s.Routing.DirectProcesses is null || s.Routing.OrderedRules is null ||
@@ -191,8 +289,11 @@ public static class BackupArchive
             !Enum.IsDefined(s.Routing.Preset) || !Enum.IsDefined(s.Routing.RemoteDnsTransport) || !Enum.IsDefined(s.Routing.DirectDnsTransport) ||
             s.Zapret.TestTargets is null || s.Zapret.GameFilter is not ("disabled" or "all" or "tcp" or "udp") ||
             s.TgWsProxy.DcIps is null || s.TgWsProxy.CfProxyDomains is null || s.TgWsProxy.Host is null || s.TgWsProxy.FakeTlsDomain is null ||
+            s.TgWsProxy.ProxyProtocolTrustedSources is null ||
+            s.TgWsProxy.ProxyProtocolTrustedSources.Any(value => !IPAddress.TryParse(value ?? "", out _)) ||
             s.LocalProxyUsername is null ||
             s.LocalProxyPort is < 1 or > 65534 || s.TgWsProxy.Port is < 1 or > 65535 ||
+            s.InterfaceScale is < AppSettings.MinInterfaceScale or > AppSettings.MaxInterfaceScale ||
             !Enum.IsDefined(s.Theme) || !Enum.IsDefined(s.Mode) || !Enum.IsDefined(s.MockScenario) || !Enum.IsDefined(s.IpCheckProvider) ||
             s.Language is not ("auto" or "en" or "ru"))
         { throw new InvalidDataException("Invalid settings."); }

@@ -185,6 +185,7 @@ public class AutomaticAppUpdaterTests
     private sealed class FakeBackend : IAppUpdateBackend
     {
         public bool IsInstalled { get; set; } = true;
+        public string? PendingVersion { get; set; } = "0.4.4";
         public int Downloads { get; private set; }
         public int Applied { get; private set; }
         public IProgress<int>? Progress { get; private set; }

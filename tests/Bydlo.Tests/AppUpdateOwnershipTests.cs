@@ -281,12 +281,25 @@ public sealed class AppUpdateOwnershipTests
         Assert.Equal(expected, UpdateGuidance.KeyFor(kind));
 
     [Fact]
+    public void Debian_guidance_switches_when_the_apt_repository_is_configured()
+    {
+        // Issue #488: only a configured source may promise apt upgrade; every other kind is unaffected.
+        Assert.Equal("settings.update.manual.deb.repository", UpdateGuidance.KeyFor(AppInstallKind.Debian, true));
+        Assert.Equal("settings.update.manual.deb", UpdateGuidance.KeyFor(AppInstallKind.Debian, false));
+        foreach (var kind in Enum.GetValues<AppInstallKind>().Where(kind => kind != AppInstallKind.Debian))
+        {
+            Assert.Equal(UpdateGuidance.KeyFor(kind), UpdateGuidance.KeyFor(kind, true));
+        }
+    }
+
+    [Fact]
     public void Guidance_strings_exist_in_both_languages()
     {
         var root = RepositoryRoot();
         var en = File.ReadAllText(Path.Combine(root, "src", "Bydlo.App", "Assets", "Strings", "en.json"));
         var ru = File.ReadAllText(Path.Combine(root, "src", "Bydlo.App", "Assets", "Strings", "ru.json"));
         var keys = Enum.GetValues<AppInstallKind>().Select(UpdateGuidance.KeyFor)
+            .Concat(new[] { "settings.update.manual.deb.repository" })
             .Concat(new[] { "settings.update.deferred", "settings.update.ready", "settings.update.downloading", "settings.update.error" })
             .Distinct(StringComparer.Ordinal);
         foreach (var key in keys)
@@ -351,6 +364,8 @@ public sealed class AppUpdateOwnershipTests
     private sealed class FakeBackend : IAppUpdateBackend
     {
         public bool IsInstalled { get; set; } = true;
+
+        public string? PendingVersion { get; set; } = "0.4.4";
 
         public int Applied { get; private set; }
 

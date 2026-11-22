@@ -20,13 +20,13 @@ if (args.Contains("--verify-licenses", StringComparer.Ordinal))
 {
     Environment.SetEnvironmentVariable("BYDLO_DATA_DIR", Path.Combine(output, "appdata"));
 }
-if (args.Contains("--verify-overhaul", StringComparer.Ordinal) || args.Contains("--verify-settings-navigation", StringComparer.Ordinal))
+if (args.Contains("--verify-overhaul", StringComparer.Ordinal) || args.Contains("--verify-settings-navigation", StringComparer.Ordinal) || args.Contains("--verify-zapret-helper", StringComparer.Ordinal))
 {
     Environment.SetEnvironmentVariable("BYDLO_DATA_DIR", Path.Combine(output, "appdata"));
 }
 if (args.Contains("--verify-server-groups", StringComparer.Ordinal) || args.Contains("--verify-simple-ui", StringComparer.Ordinal) || args.Contains("--verify-wizard", StringComparer.Ordinal) || args.Contains("--verify-backup", StringComparer.Ordinal) || args.Contains("--verify-import", StringComparer.Ordinal) || args.Contains("--verify-share", StringComparer.Ordinal) ||
     args.Contains("--verify-updates", StringComparer.Ordinal) || args.Contains("--verify-speed", StringComparer.Ordinal) || args.Contains("--verify-themes", StringComparer.Ordinal) || args.Contains("--verify-theme-gallery", StringComparer.Ordinal) || args.Contains("--verify-active-connections", StringComparer.Ordinal) || args.Contains("--verify-routing-rules", StringComparer.Ordinal) || args.Contains("--verify-routing-picker", StringComparer.Ordinal) || args.Contains("--verify-connect-switch", StringComparer.Ordinal) ||
-    args.Contains("--verify-zapret-selection", StringComparer.Ordinal) || args.Contains("--verify-desktop", StringComparer.Ordinal) || args.Contains("--verify-bundled-engines", StringComparer.Ordinal) || args.Contains("--verify-contributors", StringComparer.Ordinal) || args.Contains("--verify-elevation", StringComparer.Ordinal) ||
+    args.Contains("--verify-zapret-selection", StringComparer.Ordinal) || args.Contains("--verify-desktop", StringComparer.Ordinal) || args.Contains("--verify-bundled-engines", StringComparer.Ordinal) || args.Contains("--verify-contributors", StringComparer.Ordinal) || args.Contains("--verify-elevation", StringComparer.Ordinal) || args.Contains("--verify-interface-scale", StringComparer.Ordinal) ||
     Environment.GetEnvironmentVariable("BYDLO_DATA_DIR") is null)
 {
     Environment.SetEnvironmentVariable("BYDLO_DATA_DIR", Path.Combine(output, "appdata"));
@@ -58,6 +58,12 @@ if (app.Services is null)
 }
 var services = app.Services!;
 Bydlo.App.Services.Loc.Instance.SetLanguage(lang);
+
+if (args.Contains("--verify-zapret-helper", StringComparer.Ordinal))
+{
+    ZapretHelperVerification.Run(output);
+    return;
+}
 
 if (args.Contains("--verify-elevation", StringComparer.Ordinal))
 {
@@ -151,6 +157,11 @@ if (args.Contains("--verify-connect-switch", StringComparer.Ordinal))
 if (args.Contains("--verify-import", StringComparer.Ordinal))
 {
     ImportVerification.Run(shell, output);
+    return;
+}
+if (args.Contains("--verify-interface-scale", StringComparer.Ordinal))
+{
+    InterfaceScaleVerification.Run(shell, output);
     return;
 }
 
@@ -406,15 +417,22 @@ if (args.Contains("--verify-simple-ui", StringComparer.Ordinal))
         .Single(button => ReferenceEquals(button.Command, shell.Tools.OpenInTelegramCommand));
     if (!telegramToggle.IsEffectivelyVisible || telegramButton.IsEffectivelyVisible)
         throw new InvalidOperationException("The Telegram switch must be visible and its open button hidden until the proxy runs.");
-    var publicServers = homeWindow.GetVisualDescendants().OfType<Button>()
+    // Issue #436: the empty home exposes one "Add server" entry; every import source lives in its menu.
+    var addServer = homeWindow.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "AddServerEntry");
+    if (!addServer.IsEffectivelyVisible || !addServer.Focusable || addServer.Flyout is not Flyout addServerMenu)
+        throw new InvalidOperationException("The empty home must expose one focusable Add server entry.");
+    addServerMenu.ShowAt(addServer);
+    Pump(100);
+    var publicServers = ((StackPanel)addServerMenu.Content!).Children.OfType<Button>()
         .Single(button => Equals(button.CommandParameter, "catalog"));
     if (!publicServers.IsEffectivelyVisible || !publicServers.Focusable)
-        throw new InvalidOperationException("Public servers must be directly accessible from the empty home.");
+        throw new InvalidOperationException("Public servers must stay reachable from the Add server menu.");
     Wait(shell.OpenImportCommand.ExecuteAsync(publicServers.CommandParameter));
     if (!shell.IsAddServerOpen || !shell.AddServerWizard.IsCatalog)
         throw new InvalidOperationException("Public servers must open the catalog directly.");
     Shoot("simple-public-servers-380", 380, 760);
     shell.AddServerWizard.CloseCommand.Execute(null);
+    addServerMenu.Hide();
     homeWindow.Width = 380;
     Pump(100);
     var shortcut = homeWindow.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "ToolShortcut");

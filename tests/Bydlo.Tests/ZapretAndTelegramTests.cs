@@ -25,6 +25,11 @@ public class ZapretAndTelegramTests
         var hostlist = args.First(a => a.StartsWith("--hostlist=", StringComparison.Ordinal));
         Assert.True(Path.IsPathRooted(hostlist["--hostlist=".Length..]));
         Assert.Contains(Path.Combine(root, "lists", "list-general.txt"), hostlist, StringComparison.Ordinal);
+
+        // Flowseal 1.10.4 (issue #421): every fake payload file resolves inside the installation's bin directory.
+        var fakes = args.Where(a => a.StartsWith("--dpi-desync-fake-", StringComparison.Ordinal) && a.Contains(".bin", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(fakes);
+        Assert.All(fakes, a => Assert.StartsWith(Path.Combine(root, "bin") + Path.DirectorySeparatorChar, a[(a.IndexOf('=') + 1)..], StringComparison.Ordinal));
     }
 
     [Fact]

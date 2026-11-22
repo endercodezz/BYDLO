@@ -47,18 +47,21 @@ public sealed partial class SettingsViewModel
 
     /// <summary>
     /// Single status line. The packaged update state is authoritative, so a release notification can never
-    /// replace "downloaded, installs on exit" with "new version available" (issue #413).
+    /// replace "downloaded, installs on exit" with "new version available" (issue #413). A failed confirmation
+    /// of the previous version wins over both, because automatic updates are paused (issue #412).
     /// </summary>
-    public string UpdateStatus => Services.AutomaticUpdates.State switch
-    {
-        AppUpdateState.Downloading => L["settings.update.downloading"],
-        AppUpdateState.Ready => L["settings.update.ready"],
-        AppUpdateState.Deferred => L["settings.update.deferred"],
-        AppUpdateState.Failed => _updateFailureStatus ?? L["settings.update.error"],
-        AppUpdateState.Available when Services.AutomaticUpdates.AvailableVersion is { } version =>
-            Loc.T("settings.update.available", version),
-        _ => _updateCheckStatus,
-    };
+    public string UpdateStatus => Services.UpdateRecovery.AutoApplyBlocked
+        ? L["settings.update.recovery.blocked"]
+        : Services.AutomaticUpdates.State switch
+        {
+            AppUpdateState.Downloading => L["settings.update.downloading"],
+            AppUpdateState.Ready => L["settings.update.ready"],
+            AppUpdateState.Deferred => L["settings.update.deferred"],
+            AppUpdateState.Failed => _updateFailureStatus ?? L["settings.update.error"],
+            AppUpdateState.Available when Services.AutomaticUpdates.AvailableVersion is { } version =>
+                Loc.T("settings.update.available", version),
+            _ => _updateCheckStatus,
+        };
 
     /// <summary>Secondary line: last check time or live progress.</summary>
     [ObservableProperty]
@@ -113,9 +116,15 @@ public sealed partial class SettingsViewModel
         var blocked = Services.IsMock || NetworkSafetyGuard.IsLocked;
         OnPropertyChanged(nameof(SupportsAutomaticUpdates));
         IsAutoUpdateAvailable = SupportsAutomaticUpdates && !blocked && Services.AutomaticUpdates.IsAvailable();
-        UpdateGuidanceText = SupportsAutomaticUpdates
-            ? (blocked ? L["settings.update.auto.unavailable"] : "")
-            : L[UpdateGuidance.KeyFor(Services.AutomaticUpdates.InstallKind)];
+        // Only mention the kept package when the installer really left one next to the app (issue #412).
+        var recoveryGuidance = Services.UpdateRecovery.PreviousPackageAvailable
+            ? "settings.update.recovery.previous"
+            : "settings.update.recovery.manual";
+        UpdateGuidanceText = Services.UpdateRecovery.AutoApplyBlocked
+            ? L[recoveryGuidance]
+            : SupportsAutomaticUpdates
+                ? (blocked ? L["settings.update.auto.unavailable"] : "")
+                : L[UpdateGuidance.KeyFor(Services.AutomaticUpdates.InstallKind, Services.AptRepositoryConfigured)];
         RefreshUpdateDetail();
         OnPropertyChanged(nameof(UpdateStatus));
     }

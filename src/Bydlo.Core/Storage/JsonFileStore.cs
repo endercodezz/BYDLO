@@ -191,6 +191,7 @@ public sealed class SettingsStore(string path)
         LoadStatus = status;
         var result = settings ?? new AppSettings();
         result.MigrateLegacyTheme();
+        result.NormalizeInterfaceScale();
         return result;
     }
 

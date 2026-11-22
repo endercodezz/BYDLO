@@ -56,6 +56,8 @@ public sealed partial class ToolsViewModel : PageViewModel
         _tgCfFallback = s.TgWsProxy.CfProxyFallback;
         _tgVerbose = s.TgWsProxy.Verbose;
         _tgCfDomains = string.Join('\n', s.TgWsProxy.CfProxyDomains);
+        _tgProxyProtocol = s.TgWsProxy.ProxyProtocol;
+        _tgProxyProtocolSources = string.Join('\n', s.TgWsProxy.ProxyProtocolTrustedSources);
         LoadSelection();
         shell.PropertyChanged += OnShellChanged;
         L.PropertyChanged += (_, _) =>
@@ -149,6 +151,10 @@ public sealed partial class ToolsViewModel : PageViewModel
         && !Services.Privileges.IsElevated
         && Services.Privileges.CanRestartElevated;
 
+    public bool ShowZapretHelperSetup => ZapretNeedsElevation
+        && !Services.Privileges.IsElevated
+        && Shell.Settings.HelperSupported && !Shell.Settings.HelperInstalled;
+
     // ---------- TgWsProxy ----------
 
     [ObservableProperty]
@@ -171,6 +177,12 @@ public sealed partial class ToolsViewModel : PageViewModel
 
     [ObservableProperty]
     private string _tgCfDomains;
+
+    [ObservableProperty]
+    private bool _tgProxyProtocol;
+
+    [ObservableProperty]
+    private string _tgProxyProtocolSources;
 
     [ObservableProperty]
     private string _tgLink = "";
@@ -212,6 +224,8 @@ public sealed partial class ToolsViewModel : PageViewModel
             TgCfFallback = s.TgWsProxy.CfProxyFallback;
             TgVerbose = s.TgWsProxy.Verbose;
             TgCfDomains = string.Join('\n', s.TgWsProxy.CfProxyDomains);
+            TgProxyProtocol = s.TgWsProxy.ProxyProtocol;
+            TgProxyProtocolSources = string.Join('\n', s.TgWsProxy.ProxyProtocolTrustedSources);
         }
         finally { _loadingSettings = false; }
     }
@@ -234,6 +248,24 @@ public sealed partial class ToolsViewModel : PageViewModel
 
         SaveZapretSettings();
         await Shell.Guard(() => Services.Connections.StartZapretAsync(Services.EffectiveSettings));
+        if (Services.Connections.Zapret.ErrorLocalizationKey == "error.engine.zapret.admin")
+        {
+            // Also expose recovery when activation came from the tray.
+            Shell.Navigate("tools");
+        }
+    }
+
+    [RelayCommand]
+    private async Task InstallZapretHelper()
+    {
+        if (!ShowZapretHelperSetup || !Shell.Settings.CanManageHelper) { return; }
+        var installed = await Shell.Settings.InstallHelperForZapretAsync();
+        RefreshListEditing();
+        OnPropertyChanged(nameof(ShowZapretHelperSetup));
+        if (installed && Services.UsesPrivilegedHelper)
+        {
+            await ToggleZapret();
+        }
     }
 
     [RelayCommand]
@@ -429,6 +461,17 @@ public sealed partial class ToolsViewModel : PageViewModel
             return false;
         }
 
+        var sources = TgProxyProtocolSources.Split('\n', ',', ' ').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+        try
+        {
+            TgWsProxyOptions.ParseTrustedSources(sources);
+        }
+        catch (EngineException ex)
+        {
+            Shell.ShowToast(Loc.Error(ex.Message, ex.LocalizationKey), isError: true);
+            return false;
+        }
+
         var t = Services.Settings.TgWsProxy;
         t.Host = string.IsNullOrWhiteSpace(TgHost) ? "127.0.0.1" : TgHost.Trim();
         t.Port = TgPort;
@@ -437,6 +480,8 @@ public sealed partial class ToolsViewModel : PageViewModel
         t.CfProxyFallback = TgCfFallback;
         t.Verbose = TgVerbose;
         t.CfProxyDomains = [.. TgCfDomains.Split('\n', ',', ' ').Select(x => x.Trim()).Where(x => x.Length > 0)];
+        t.ProxyProtocol = TgProxyProtocol;
+        t.ProxyProtocolTrustedSources = sources;
         _ = Services.SaveSettingsAsync();
         return true;
     }
@@ -557,6 +602,7 @@ public sealed partial class ToolsViewModel : PageViewModel
             OnPropertyChanged(nameof(ZapretError));
             OnPropertyChanged(nameof(ZapretNeedsElevation));
             OnPropertyChanged(nameof(ShowRestartElevated));
+            OnPropertyChanged(nameof(ShowZapretHelperSetup));
         }
         else if (e.PropertyName == nameof(MainViewModel.Tg))
         {

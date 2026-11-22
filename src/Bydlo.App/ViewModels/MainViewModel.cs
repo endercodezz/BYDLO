@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Bydlo.App.Services;
 using Bydlo.Core.Connection;
@@ -69,6 +70,7 @@ public sealed partial class MainViewModel : ViewModelBase
         _isOnboardingVisible = !services.Settings.OnboardingCompleted;
         _onboardingLanguage = services.Settings.Language;
         _onboardingTheme = services.Settings.Theme;
+        _interfaceScale = services.Settings.InterfaceScale;
         _consentAutomaticUpdates = services.Settings.ConsentAutomaticUpdates;
         _consentNotifications = services.Settings.ConsentNotifications;
         _consentThemes = services.Settings.ConsentThemes;
@@ -114,6 +116,7 @@ public sealed partial class MainViewModel : ViewModelBase
         Loc.Instance.PropertyChanged += (_, _) => OnNoticeLanguageChanged();
         RefreshCrashReports();
         ShowStoreRecoveryToasts();
+        ShowUpdateRecoveryToast();
         _ = RunStartupChecksAsync();
         services.StartSubscriptionAutoRefresh(Connections.RunAutoRefreshAsync);
     }
@@ -138,6 +141,30 @@ public sealed partial class MainViewModel : ViewModelBase
             settings == Bydlo.Core.Storage.StoreLoadStatus.ResetEmpty)
         {
             ShowToast(L["store.reset"], isError: true, localizationKey: "store.reset");
+        }
+    }
+
+    private UpdateRecoveryStartup? _shownUpdateRecovery;
+
+    /// <summary>
+    /// Explains an interrupted or unconfirmed update. Called once at startup and again after the readiness
+    /// confirmation, which may turn the state into <see cref="UpdateRecoveryStartup.Blocked"/> (issue #412).
+    /// </summary>
+    public void ShowUpdateRecoveryToast()
+    {
+        var startup = Services.UpdateRecovery.Startup;
+        if (startup == _shownUpdateRecovery) { return; }
+        _shownUpdateRecovery = startup;
+        switch (startup)
+        {
+            case UpdateRecoveryStartup.Blocked:
+                ShowToast(Loc.T("update.recovery.blocked", Bydlo.Core.AppVersion.Current), isError: true,
+                    localizationKey: "update.recovery.blocked", localizationArguments: [Bydlo.Core.AppVersion.Current]);
+                break;
+            case UpdateRecoveryStartup.Interrupted:
+                ShowToast(Loc.T("update.recovery.interrupted", Bydlo.Core.AppVersion.Current), isError: true,
+                    localizationKey: "update.recovery.interrupted", localizationArguments: [Bydlo.Core.AppVersion.Current]);
+                break;
         }
     }
 
@@ -182,6 +209,13 @@ public sealed partial class MainViewModel : ViewModelBase
             case "qr":
                 AddServerWizard.ChooseQrCommand.Execute(null);
                 await AddServerWizard.SelectQrCommand.ExecuteAsync(null);
+                break;
+            case "manual":
+                AddServerWizard.ChooseManualCommand.Execute(null);
+                break;
+            case "subscription":
+                AddServerWizard.ChooseLinkCommand.Execute(null);
+                AddServerWizard.ImportTypeIndex = 2;
                 break;
             default:
                 AddServerWizard.ChooseLinkCommand.Execute(null);
@@ -270,6 +304,36 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSettingsDetail))]
     private bool _isCompact;
+
+    /// <summary>Shell width in scaled layout units, reported by the root view (issue #477).</summary>
+    [ObservableProperty]
+    private double _layoutWidth;
+
+    /// <summary>Interface scale in percent; the root view applies it as a layout transform.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InterfaceScaleFactor))]
+    [NotifyPropertyChangedFor(nameof(InterfaceScaleTransform))]
+    private int _interfaceScale = AppSettings.DefaultInterfaceScale;
+
+    /// <summary>Layout multiplier for <see cref="InterfaceScale"/>; 1.0 is 100%.</summary>
+    public double InterfaceScaleFactor => AppSettings.ClampInterfaceScale(InterfaceScale) / 100.0;
+
+    /// <summary>
+    /// Layout transform for the shell root. A new instance per change makes the
+    /// <c>LayoutTransformControl</c> re-measure instead of relying on a mutated matrix.
+    /// </summary>
+    public ITransform InterfaceScaleTransform => new ScaleTransform(InterfaceScaleFactor, InterfaceScaleFactor);
+
+    partial void OnLayoutWidthChanged(double value) => RefreshCompact();
+
+    partial void OnInterfaceScaleChanged(int value) => RefreshCompact();
+
+    /// <summary>
+    /// The scale shrinks the unscaled layout width, so the sidebar/bottom switch must compare the
+    /// effective width instead of the window width.
+    /// </summary>
+    private void RefreshCompact() =>
+        IsCompact = LayoutMetrics.IsCompact(LayoutMetrics.EffectiveWidth(LayoutWidth, InterfaceScaleFactor));
 
     [ObservableProperty]
     private ProfileItem? _selectedProfile;

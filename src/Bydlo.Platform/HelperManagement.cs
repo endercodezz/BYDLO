@@ -48,13 +48,17 @@ public static class HelperManagement
         }
     }
 
-    /// <summary>Only explicit Settings buttons invoke this method; Windows supplies the UAC consent prompt.</summary>
+    /// <summary>Explicit installation actions invoke the OS administrator consent prompt.</summary>
     public static async Task<bool> ChangeAsync(bool install, bool userConsent, CancellationToken ct = default)
     {
         if (!userConsent) { return false; }
         NetworkSafetyGuard.EnsureAllowed("manage the privileged helper");
+        ct.ThrowIfCancellationRequested();
         if (!IsSupported) { throw new PlatformNotSupportedException(); }
-        var executable = Path.Combine(AppContext.BaseDirectory, "helper", OperatingSystem.IsWindows() ? "Bydlo.Helper.exe" : "Bydlo.Helper");
+        // Root cannot access a normal user's AppImage FUSE mount. Stage before invoking PolKit.
+        using var staged = OperatingSystem.IsLinux() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPIMAGE"))
+            ? HelperInstallBundle.Stage(AppContext.BaseDirectory, install) : null;
+        var executable = staged?.Executable ?? Path.Combine(AppContext.BaseDirectory, "helper", OperatingSystem.IsWindows() ? "Bydlo.Helper.exe" : "Bydlo.Helper");
         if (!File.Exists(executable)) { throw new FileNotFoundException("Helper is missing from this release."); }
         ProcessStartInfo info;
         if (OperatingSystem.IsWindows())
@@ -89,7 +93,8 @@ public static class HelperManagement
         {
             using var process = Process.Start(info);
             if (process is null) { return false; }
-            await process.WaitForExitAsync(ct).ConfigureAwait(false);
+            // A staged payload must remain available until the elevated installer finishes reading it.
+            await process.WaitForExitAsync(staged is null ? ct : CancellationToken.None).ConfigureAwait(false);
             return process.ExitCode == 0;
         }
         catch (System.ComponentModel.Win32Exception) { return false; }

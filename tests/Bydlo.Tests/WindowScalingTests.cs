@@ -8,7 +8,7 @@ public class WindowScalingTests
 {
     private static double ReadCompactWidth(string root)
     {
-        var code = File.ReadAllText(Path.Combine(root, "src", "Bydlo.App", "Views", "MainView.axaml.cs"));
+        var code = File.ReadAllText(Path.Combine(root, "src", "Bydlo.App", "Services", "LayoutMetrics.cs"));
         var m = Regex.Match(code, @"CompactWidth\s*=\s*(\d+(?:\.\d+)?)");
         Assert.True(m.Success);
         return double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
@@ -20,8 +20,9 @@ public class WindowScalingTests
         var root = RepositoryRoot();
         var width = ReadCompactWidth(root);
         Assert.Equal(760, width);
+        // The shell reports its scaled width; the view model compares the effective unscaled width (issue #477).
         var code = File.ReadAllText(Path.Combine(root, "src", "Bydlo.App", "Views", "MainView.axaml.cs"));
-        Assert.Contains("IsCompact = e.NewSize.Width < CompactWidth", code, StringComparison.Ordinal);
+        Assert.Contains("vm.LayoutWidth = e.NewSize.Width", code, StringComparison.Ordinal);
         // Real condition, not literals: just below switches, at and above do not.
         Assert.True(759 < width);
         Assert.False(760 < width);

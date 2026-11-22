@@ -61,6 +61,15 @@ public sealed record TgWsProxyOptions
     /// <summary>Port 80 instead of TLS for the Cloudflare paths (upstream <c>--no-secure</c>).</summary>
     public bool DisableSecure { get; init; }
 
+    /// <summary>Accept a PROXY protocol v1 header before the client handshake (upstream <c>--proxy-protocol</c>).</summary>
+    public bool ProxyProtocol { get; init; }
+
+    /// <summary>Peers allowed to send that header. Loopback only unless configured otherwise.</summary>
+    public IReadOnlyList<IPAddress> ProxyProtocolTrustedSources { get; init; } = DefaultTrustedSources;
+
+    /// <summary>Loopback, the only sender trusted by default.</summary>
+    public static readonly IReadOnlyList<IPAddress> DefaultTrustedSources = [IPAddress.Loopback, IPAddress.IPv6Loopback];
+
     public static TgWsProxyOptions From(TgWsProxySettings settings, string secretHex) => new()
     {
         Host = string.IsNullOrWhiteSpace(settings.Host) ? "127.0.0.1" : settings.Host.Trim(),
@@ -71,7 +80,32 @@ public sealed record TgWsProxyOptions
         CfProxyFallback = settings.CfProxyFallback,
         CfProxyDomains = TgWsProxy.CfProxyDomains.Normalize(settings.CfProxyDomains),
         Verbose = settings.Verbose,
+        ProxyProtocol = settings.ProxyProtocol,
+        ProxyProtocolTrustedSources = ParseTrustedSources(settings.ProxyProtocolTrustedSources),
     };
+
+    /// <summary>Parses the trusted PROXY protocol senders; an empty list keeps the loopback default.</summary>
+    public static IReadOnlyList<IPAddress> ParseTrustedSources(IEnumerable<string> entries)
+    {
+        var result = new List<IPAddress>();
+        foreach (var raw in entries)
+        {
+            var entry = raw.Trim();
+            if (entry.Length == 0)
+            {
+                continue;
+            }
+
+            if (!IPAddress.TryParse(entry, out var ip))
+            {
+                throw new EngineException($"Invalid trusted PROXY protocol source '{entry}'.", localizationKey: "error.engine.tg.proxyprotocol");
+            }
+
+            result.Add(ip);
+        }
+
+        return result.Count > 0 ? result : DefaultTrustedSources;
+    }
 
     /// <summary>Parses <c>DC:IP</c> lines (IPv4 only, as upstream).</summary>
     public static Dictionary<int, string> ParseDcIps(IEnumerable<string> entries)

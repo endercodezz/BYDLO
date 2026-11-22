@@ -52,6 +52,13 @@
           <Border Classes="banner bad" IsVisible="{Binding ZapretError, Converter={x:Static ObjectConverters.IsNotNull}}">
             <StackPanel Spacing="8">
               <TextBlock Text="{Binding ZapretError}" TextWrapping="Wrap" />
+              <StackPanel Spacing="8" IsVisible="{Binding ShowZapretHelperSetup}">
+                <TextBlock Text="{l:T tools.zapret.helper.hint}" TextWrapping="Wrap" />
+                <Button Classes="ghost" Command="{Binding InstallZapretHelperCommand}" IsEnabled="{Binding Shell.Settings.CanManageHelper}" HorizontalAlignment="Left">
+                  <TextBlock Text="{l:T tools.zapret.helper.install}" TextWrapping="Wrap" />
+                </Button>
+                <TextBlock Text="{Binding Shell.Settings.HelperStatus}" TextWrapping="Wrap" />
+              </StackPanel>
               <Button Classes="ghost" Content="{l:T settings.admin.restart}" Command="{Binding RestartElevatedCommand}" IsVisible="{Binding ShowRestartElevated}" HorizontalAlignment="Left" />
             </StackPanel>
           </Border>
@@ -271,6 +278,15 @@
                 <TextBlock Text="{l:T tools.tg.verbose}" VerticalAlignment="Center" />
                 <ToggleSwitch Grid.Column="1" IsChecked="{Binding TgVerbose}" AutomationProperties.Name="{l:T tools.tg.verbose}" />
               </Grid>
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{l:T tools.tg.proxyprotocol}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                <ToggleSwitch Grid.Column="1" IsChecked="{Binding TgProxyProtocol}" AutomationProperties.Name="{l:T tools.tg.proxyprotocol}" />
+              </Grid>
+              <StackPanel Spacing="6" IsVisible="{Binding TgProxyProtocol}">
+                <TextBlock Classes="caps" Text="{l:T tools.tg.proxyprotocol.sources}" />
+                <TextBox Text="{Binding TgProxyProtocolSources}" AcceptsReturn="True" MinHeight="44" FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12" />
+                <TextBlock Classes="faint" Text="{l:T tools.tg.proxyprotocol.sources.hint}" TextWrapping="Wrap" />
+              </StackPanel>
               <StackPanel Spacing="6" IsVisible="{Binding TgCfFallback}">
                 <TextBlock Classes="caps" Text="{l:T tools.tg.cfdomains}" />
                 <TextBox Text="{Binding TgCfDomains}" AcceptsReturn="True" MinHeight="44" FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12" />

@@ -44,7 +44,6 @@
             <TextBlock Text="{l:T wizard.title}" Foreground="{DynamicResource OnPrimaryBrush}" />
           </StackPanel>
         </Button>
-        <Button Classes="ghost" Margin="0,0,8,8" Content="{l:T catalog.title}" Command="{Binding Shell.OpenImportCommand}" CommandParameter="catalog" />
         <Button Classes="ghost" Margin="0,0,0,8" Content="{l:T import.demo}" Command="{Binding AddDemoProfilesCommand}" IsVisible="{Binding Shell.IsMock}" />
       </WrapPanel>
 
@@ -87,7 +86,7 @@
                         <TextBlock Text="{l:T status.connected}" FontSize="10" />
                       </Border>
                     </StackPanel>
-                    <TextBlock Classes="faint" Text="{Binding Details}" />
+                    <TextBlock Classes="faint" Text="{Binding Details}" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" Spacing="6">
                       <TextBlock Classes="faint" Text="{Binding Endpoint}" TextTrimming="CharacterEllipsis" />
                       <Border Classes="pill" Classes.ok="{Binding LatencyOk}" Classes.warn="{Binding LatencyWarn}" Classes.bad="{Binding LatencyBad}"
@@ -97,30 +96,35 @@
                     </StackPanel>
                   </StackPanel>
                   <StackPanel Classes="profile-actions" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                    <!-- Issue #436: rare per-server actions live in one menu; delete keeps its own
+                         confirmed button so it never becomes easier to trigger. -->
                     <Button Classes="icon" Content="⋯" AutomationProperties.Name="{l:T connections.actions}" ToolTip.Tip="{l:T connections.actions}">
                       <Button.Flyout>
                         <Flyout>
-                          <StackPanel Spacing="6">
-                            <Button Content="{l:T profile.edit.title}"
+                          <StackPanel Spacing="2" MinWidth="220">
+                            <Button Classes="menu-item" Content="{l:T profile.edit.title}"
                                     Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).EditProfileCommand}" CommandParameter="{Binding}" />
-                            <Button Content="{l:T profile.edit.duplicate}"
+                            <Button Classes="menu-item" Content="{l:T profile.edit.duplicate}"
                                     Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).DuplicateProfileCommand}" CommandParameter="{Binding}" />
-                            <Button Content="{l:T share.qr}" IsVisible="{Binding CanShareLink}"
+                            <Button Classes="menu-item" Content="{l:T share.qr}" IsVisible="{Binding CanShareLink}"
                                     Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).ShowQrCommand}" CommandParameter="{Binding}" />
-                            <Button Content="{l:T share.copy}" IsVisible="{Binding CanShareLink}"
+                            <Button Classes="menu-item" Content="{l:T share.copy}" IsVisible="{Binding CanShareLink}"
                                     Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).CopyLinkCommand}" CommandParameter="{Binding}" />
-                            <Button Content="{l:T share.file}" IsVisible="{Binding CanExportConfig}"
+                            <Button Classes="menu-item" Content="{l:T share.file}" IsVisible="{Binding CanExportConfig}"
                                     Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).ExportConfigCommand}" CommandParameter="{Binding}" />
+                            <Button Classes="menu-item" AutomationProperties.Name="{l:T connections.favorite}"
+                                    Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).ToggleFavoriteCommand}" CommandParameter="{Binding}">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Panel>
+                                  <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding IsFavorite}" Foreground="{DynamicResource WarningBrush}" />
+                                  <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding !IsFavorite}" Opacity="0.4" />
+                                </Panel>
+                                <TextBlock Text="{l:T connections.favorite}" VerticalAlignment="Center" />
+                              </StackPanel>
+                            </Button>
                           </StackPanel>
                         </Flyout>
                       </Button.Flyout>
-                    </Button>
-                    <Button Classes="icon" AutomationProperties.Name="{l:T connections.favorite}" ToolTip.Tip="{l:T connections.favorite}"
-                            Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).ToggleFavoriteCommand}" CommandParameter="{Binding}">
-                      <Panel>
-                        <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding IsFavorite}" Foreground="{DynamicResource WarningBrush}" />
-                        <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding !IsFavorite}" Opacity="0.4" />
-                      </Panel>
                     </Button>
                     <Button Classes="icon" AutomationProperties.Name="{l:T connections.delete}" ToolTip.Tip="{l:T connections.delete}">
                       <c:OutlineIcon Data="{StaticResource LineDelete}" Width="16" Height="16" />
@@ -201,20 +205,29 @@
                         <TextBlock Text="{l:T status.connected}" FontSize="10" />
                       </Border>
                     </StackPanel>
-                    <TextBlock Classes="faint" Text="{Binding Details}" />
+                    <TextBlock Classes="faint" Text="{Binding Details}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Classes="faint" Text="{Binding HopSummary}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                   <StackPanel Classes="profile-actions" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-                    <Button Classes="icon" AutomationProperties.Name="{l:T connections.favorite}" ToolTip.Tip="{l:T connections.favorite}"
-                            Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).ToggleChainFavoriteCommand}" CommandParameter="{Binding}">
-                      <Panel>
-                        <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding IsFavorite}" Foreground="{DynamicResource WarningBrush}" />
-                        <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding !IsFavorite}" Opacity="0.4" />
-                      </Panel>
-                    </Button>
-                    <Button Classes="icon" AutomationProperties.Name="{l:T chain.edit}" ToolTip.Tip="{l:T chain.edit}"
-                            Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).EditChainCommand}" CommandParameter="{Binding}">
-                      <c:OutlineIcon Data="{StaticResource LinePencil}" Width="16" Height="16" />
+                    <Button Classes="icon" Content="⋯" AutomationProperties.Name="{l:T chain.actions}" ToolTip.Tip="{l:T chain.actions}">
+                      <Button.Flyout>
+                        <Flyout>
+                          <StackPanel Spacing="2" MinWidth="220">
+                            <Button Classes="menu-item" Content="{l:T chain.edit}"
+                                    Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).EditChainCommand}" CommandParameter="{Binding}" />
+                            <Button Classes="menu-item" AutomationProperties.Name="{l:T connections.favorite}"
+                                    Command="{Binding $parent[UserControl].((vm:ConnectionsViewModel)DataContext).ToggleChainFavoriteCommand}" CommandParameter="{Binding}">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Panel>
+                                  <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding IsFavorite}" Foreground="{DynamicResource WarningBrush}" />
+                                  <c:OutlineIcon Data="{StaticResource LineStar}" Width="16" Height="16" IsVisible="{Binding !IsFavorite}" Opacity="0.4" />
+                                </Panel>
+                                <TextBlock Text="{l:T connections.favorite}" VerticalAlignment="Center" />
+                              </StackPanel>
+                            </Button>
+                          </StackPanel>
+                        </Flyout>
+                      </Button.Flyout>
                     </Button>
                     <Button Classes="icon" AutomationProperties.Name="{l:T chain.delete}" ToolTip.Tip="{l:T chain.delete}">
                       <c:OutlineIcon Data="{StaticResource LineDelete}" Width="16" Height="16" />

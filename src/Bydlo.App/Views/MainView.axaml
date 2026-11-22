@@ -36,276 +36,280 @@
       <Setter Property="ContentTransition"><CrossFade Duration="0:0:0.10" /></Setter>
     </Style>
   </UserControl.Styles>
-  <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="Auto,*" ClipToBounds="True">
-    <!-- Persistent release and project notices have their own row, including during onboarding. -->
-    <StackPanel Grid.ColumnSpan="2">
-      <Border Classes="banner" IsVisible="{Binding HasReleaseNotification}" Margin="12,8">
-        <StackPanel Spacing="8">
-          <TextBlock Text="{Binding ReleaseNotificationText}" FontWeight="SemiBold" TextWrapping="Wrap" />
-          <WrapPanel>
-            <Button Classes="primary" Content="{l:T update.notification.open}" Command="{Binding OpenReleaseNotificationCommand}" Margin="0,0,8,0" />
-            <Button Classes="ghost" Content="{l:T update.notification.dismiss}" Command="{Binding DismissReleaseNotificationCommand}" />
-          </WrapPanel>
-        </StackPanel>
-      </Border>
-      <!-- Maintainer announcement from notice.json in the repository (issue #193). -->
-      <Border Classes="banner" Classes.bad="{Binding IsNoticeCritical}" IsVisible="{Binding HasNotice}" Margin="12,8">
-        <StackPanel Spacing="8">
-          <TextBlock Text="{Binding NoticeTitle}" IsVisible="{Binding HasNoticeTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding NoticeText}" TextWrapping="Wrap" />
-          <WrapPanel>
-            <Button Classes="primary" Content="{l:T notice.open}" IsVisible="{Binding HasNoticeUrl}"
-                    Command="{Binding OpenNoticeCommand}" Margin="0,0,8,0" />
-            <Button Classes="ghost" Content="{l:T notice.dismiss}" Command="{Binding DismissNoticeCommand}" />
-          </WrapPanel>
-        </StackPanel>
-      </Border>
-    </StackPanel>
-    <Grid Grid.Row="1" Grid.RowSpan="3" Grid.ColumnSpan="2" RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*">
-    <!-- Desktop sidebar -->
-    <Border x:Name="DesktopSidebar" Grid.RowSpan="3" Width="204" IsVisible="{Binding !IsCompact}" IsEnabled="{Binding CanUseWorkspace}"
-            Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,*,Auto" Margin="14,24,14,16">
-        <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,0,6,28">
-          <Image Source="{StaticResource BrandLogo}" Width="34" Height="34" VerticalAlignment="Center" />
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="BYDLO" FontWeight="SemiBold" FontSize="18" LetterSpacing="0.3" />
-          </StackPanel>
-        </StackPanel>
-
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <StackPanel>
-            <ItemsControl ItemsSource="{Binding ConnectionNavItems}" ItemTemplate="{StaticResource DesktopNavigationItem}" />
-            <TextBlock Classes="muted" Text="{l:T nav.group.network}" FontSize="12" FontWeight="Medium" Margin="12,18,0,7" />
-            <ItemsControl ItemsSource="{Binding NetworkNavItems}" ItemTemplate="{StaticResource DesktopNavigationItem}" />
-          </StackPanel>
-        </ScrollViewer>
-
-        <StackPanel Grid.Row="2" Spacing="8">
-          <Border Height="1" Background="{DynamicResource LineBrush}" Margin="4,0" />
-          <RadioButton Classes="nav" GroupName="nav"
-                       IsChecked="{Binding SettingsNav.IsSelected, Mode=OneWay}"
-                       Command="{Binding NavigateCommand}" CommandParameter="settings"
-                       AutomationProperties.Name="{Binding SettingsNav.Title}">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-              <c:OutlineIcon Data="{StaticResource LineSettings}" />
-              <TextBlock Text="{Binding SettingsNav.Title}" VerticalAlignment="Center" />
-            </StackPanel>
-          </RadioButton>
-          <!-- Contributors page entry (issue #168); the list itself comes from GitHub, never hardcoded. -->
-          <RadioButton x:Name="ContributorsNavButton" Classes="nav" GroupName="nav"
-                       IsChecked="{Binding ContributorsNav.IsSelected, Mode=OneWay}"
-                       Command="{Binding NavigateCommand}" CommandParameter="contributors"
-                       AutomationProperties.Name="{Binding ContributorsNav.Title}">
-            <StackPanel Orientation="Horizontal" Spacing="12">
-              <c:OutlineIcon Data="{StaticResource LineUsers}" />
-              <TextBlock Text="{Binding ContributorsNav.Title}" VerticalAlignment="Center" />
-            </StackPanel>
-          </RadioButton>
-          <Border Classes="pill warn" IsVisible="{Binding IsMock}" HorizontalAlignment="Left">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <c:OutlineIcon Data="{StaticResource LineFlask}" Width="12" Height="12" Foreground="{DynamicResource WarningBrush}" />
-              <TextBlock Text="{l:T mock.badge}" />
-            </StackPanel>
-          </Border>
-          <TextBlock Classes="faint" Text="{Binding Settings.Version, StringFormat='v{0} · GPL-3.0'}" Margin="4,0" />
-        </StackPanel>
-
-      </Grid>
-    </Border>
-
-    <!-- Compact header -->
-    <Grid Grid.Column="1" IsVisible="{Binding IsCompact}" ColumnDefinitions="Auto,*,Auto" Margin="16,12,16,4">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Image Source="{StaticResource BrandLogo}" Width="28" Height="28" VerticalAlignment="Center" />
-        <TextBlock Text="BYDLO" FontWeight="Bold" FontSize="16" LetterSpacing="0" VerticalAlignment="Center" />
-      </StackPanel>
-      <Border Grid.Column="2" Classes="pill warn" IsVisible="{Binding IsMock}">
-        <TextBlock Text="{l:T mock.badge}" />
-      </Border>
-    </Grid>
-
-    <!-- Content -->
-    <DockPanel Grid.Row="1" Grid.Column="1" IsEnabled="{Binding CanUseWorkspace}">
-      <Border DockPanel.Dock="Top" IsVisible="{Binding IsSettingsDetail}" Padding="24,12,24,0">
-        <Button Classes="ghost" Content="{l:T nav.settings.back}" Command="{Binding NavigateCommand}" CommandParameter="settings" />
-      </Border>
-      <TransitioningContentControl Classes="page-host" Content="{Binding CurrentPage}" />
-    </DockPanel>
-
-    <!-- Compact bottom navigation -->
-    <Border Grid.Row="2" Grid.Column="1" IsVisible="{Binding IsCompact}" IsEnabled="{Binding CanUseWorkspace}"
-            Margin="0"
-            Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="4,6">
-      <ItemsControl ItemsSource="{Binding PrimaryNavItems}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:NavItem">
-            <RadioButton Classes="nav navbottom" GroupName="bottomnav" HorizontalContentAlignment="Center"
-                         IsChecked="{Binding IsSelected, Mode=OneWay}"
-                         Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).NavigateCommand}"
-                         CommandParameter="{Binding Key}" AutomationProperties.Name="{Binding Title}">
-              <StackPanel Spacing="3" HorizontalAlignment="Center">
-                <c:OutlineIcon Data="{Binding IconKey, Converter={x:Static l:IconConverter.Instance}}" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding ShortTitle}" FontSize="10" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              </StackPanel>
-            </RadioButton>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </Border>
-
-    <!-- Orphan engines banner -->
-    <Border Grid.Row="1" Grid.Column="1" Classes="banner" IsVisible="{Binding HasOrphans}"
-            VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,12">
-      <StackPanel Orientation="Horizontal" Spacing="12">
-        <c:OutlineIcon Data="{StaticResource LineAlert}" Foreground="{DynamicResource WarningBrush}" VerticalAlignment="Center" />
-        <TextBlock Text="{l:T orphans.text}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
-        <Button Classes="ghost" Content="{l:T orphans.stop}" Command="{Binding CleanupOrphansCommand}" />
-      </StackPanel>
-    </Border>
-
-    <!-- Crash report banner -->
-    <Border Grid.Row="1" Grid.Column="1" Classes="banner" IsVisible="{Binding HasCrashReports}"
-            VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,52">
-      <StackPanel Orientation="Horizontal" Spacing="12">
-        <c:OutlineIcon Data="{StaticResource LineAlert}" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center" />
-        <TextBlock Text="{l:T crash.text}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
-        <Button Classes="ghost" Content="{l:T crash.open}" Command="{Binding OpenCrashFolderCommand}" />
-        <Button Classes="ghost" Content="{l:T crash.copy}" Command="{Binding CopyCrashReportCommand}" />
-        <Button Classes="ghost" Content="{l:T crash.dismiss}" Command="{Binding DismissCrashReportsCommand}" />
-      </StackPanel>
-    </Border>
-
-    <!-- Toast -->
-    <Border Grid.Row="1" Grid.Column="1" IsVisible="{Binding HasVisibleToast}"
-            VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="16,0,16,22" MaxWidth="560"
-            CornerRadius="{DynamicResource RadiusMedium}" Padding="16,11"
-            Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" AutomationProperties.LiveSetting="Polite">
-        <c:OutlineIcon Data="{StaticResource LineAlert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding ToastIsError}" Width="16" Height="16" />
-        <c:OutlineIcon Data="{StaticResource LineInfo}" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding !ToastIsError}" Width="16" Height="16" />
-        <TextBlock Grid.Column="1" Text="{Binding Toast}" TextWrapping="Wrap" />
-      </Grid>
-    </Border>
-    <Border Grid.Row="1" Grid.Column="1" Classes="banner" VerticalAlignment="Top" Margin="16,12"
-            IsVisible="{Binding ClipboardOffer, Converter={x:Static ObjectConverters.IsNotNull}}">
-      <StackPanel Spacing="10">
-        <TextBlock Text="{Binding ClipboardOffer}" TextWrapping="Wrap" />
-        <WrapPanel>
-          <Button Classes="primary" Content="{l:T import.preview}" Command="{Binding AcceptClipboardOfferCommand}" Margin="0,0,8,0" />
-          <Button Classes="ghost" Content="{l:T import.dismiss}" Command="{Binding DismissClipboardOfferCommand}" />
-        </WrapPanel>
-      </StackPanel>
-    </Border>
-    <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Margin="8" CornerRadius="{DynamicResource RadiusLarge}" Padding="24"
-            IsVisible="{Binding IsDragOver}" IsHitTestVisible="False" BorderThickness="3"
-            BorderBrush="{DynamicResource AccentBrush}" Background="{DynamicResource Surface2Brush}" Opacity="0.94">
-      <TextBlock Text="{l:T import.drop}" FontSize="24" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" />
-    </Border>
-    <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Background="{DynamicResource BackdropBrush}" IsVisible="{Binding HasImportPreview}"
-            KeyboardNavigation.TabNavigation="Cycle">
-      <Border Classes="panel" MaxWidth="620" Margin="24" VerticalAlignment="Center" MaxHeight="650">
-        <Grid RowDefinitions="Auto,*,Auto">
-          <TextBlock Classes="h2" Text="{l:T import.preview}" Margin="0,0,0,16" />
-          <ScrollViewer Grid.Row="1" MaxHeight="420">
-            <ItemsControl ItemsSource="{Binding ImportPreviewItems}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
-          <WrapPanel Grid.Row="2" Margin="0,16,0,0" IsEnabled="{Binding !IsImportBusy}">
-            <Button Classes="primary" Content="{l:T import.add}" Command="{Binding ConfirmImportCommand}" IsEnabled="{Binding CanConfirmImport}" Margin="0,0,8,0" />
-            <Button Classes="ghost" Content="{l:T import.dismiss}" Command="{Binding CancelImportCommand}" />
-          </WrapPanel>
-        </Grid>
-      </Border>
-    </Border>
-
-    <Border Grid.RowSpan="3" Grid.ColumnSpan="2" IsVisible="{Binding IsAddServerOpen}" Background="{DynamicResource BackdropBrush}"
-            KeyboardNavigation.TabNavigation="Cycle">
-      <v:AddServerWizardView DataContext="{Binding AddServerWizard}" />
-    </Border>
-
-    <Border Grid.RowSpan="3" Grid.ColumnSpan="2" IsVisible="{Binding IsChainEditorOpen}" Background="{DynamicResource BackdropBrush}"
-            KeyboardNavigation.TabNavigation="Cycle">
-      <v:ChainEditorView DataContext="{Binding ChainEditor}" />
-    </Border>
-
-    <!-- First-run onboarding -->
-    <Border Grid.RowSpan="3" Grid.ColumnSpan="2" IsVisible="{Binding IsOnboardingVisible}" Background="{DynamicResource ScrimBrush}"
-            KeyboardNavigation.TabNavigation="Cycle">
-      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Center">
-        <Border Classes="dialog" MaxWidth="540" Margin="18" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-          <StackPanel Spacing="18">
-            <Image Source="{StaticResource BrandLogo}" Width="42" Height="42" HorizontalAlignment="Left" />
-            <TextBlock Classes="display" Text="{l:T onboarding.title}" TextWrapping="Wrap" />
-            <TextBlock Classes="muted" Text="{l:T onboarding.text}" TextWrapping="Wrap" />
-            <!-- Three independent, initially unchecked consents (issue #438). Nothing is pre-selected. -->
-            <Border Classes="tile">
-              <StackPanel Spacing="10">
-                <TextBlock Classes="caps" Text="{l:T onboarding.consent.title}" />
-                <TextBlock Classes="faint" Text="{l:T onboarding.consent.text}" TextWrapping="Wrap" />
-                <CheckBox IsChecked="{Binding ConsentAutomaticUpdates}" AutomationProperties.Name="{l:T onboarding.consent.updates}">
-                  <StackPanel Spacing="2">
-                    <TextBlock Text="{l:T onboarding.consent.updates}" TextWrapping="Wrap" />
-                    <TextBlock Classes="faint" Text="{l:T onboarding.consent.updates.hint}" TextWrapping="Wrap" />
-                  </StackPanel>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding ConsentNotifications}" AutomationProperties.Name="{l:T onboarding.consent.notifications}">
-                  <StackPanel Spacing="2">
-                    <TextBlock Text="{l:T onboarding.consent.notifications}" TextWrapping="Wrap" />
-                    <TextBlock Classes="faint" Text="{l:T onboarding.consent.notifications.hint}" TextWrapping="Wrap" />
-                  </StackPanel>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding ConsentThemes}" AutomationProperties.Name="{l:T onboarding.consent.themes}">
-                  <StackPanel Spacing="2">
-                    <TextBlock Text="{l:T onboarding.consent.themes}" TextWrapping="Wrap" />
-                    <TextBlock Classes="faint" Text="{l:T onboarding.consent.themes.hint}" TextWrapping="Wrap" />
-                  </StackPanel>
-                </CheckBox>
-                <TextBlock Classes="caps" Text="{l:T onboarding.consent.sources}" />
-                <WrapPanel>
-                  <Button Classes="text-action" Content="{l:T onboarding.consent.source.releases}" Margin="0,0,14,0"
-                          Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static gh:GitHubSources.Releases}" />
-                  <Button Classes="text-action" Content="{l:T onboarding.consent.source.notice}" Margin="0,0,14,0"
-                          Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static gh:GitHubSources.Notice}" />
-                  <Button Classes="text-action" Content="{l:T onboarding.consent.source.themes}"
-                          Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static gh:GitHubSources.ThemeGallery}" />
-                </WrapPanel>
-              </StackPanel>
-            </Border>
-            <WrapPanel HorizontalAlignment="Left">
-              <Button Classes="primary" Content="{l:T onboarding.start}" Command="{Binding StartOnboardingImportCommand}" Margin="0,0,8,8" />
-              <Button Classes="quiet" Content="{l:T onboarding.skip}" Command="{Binding FinishOnboardingCommand}" Margin="0,0,0,8" />
+  <!-- Interface scale (issue #477): one layout transform at the shell root keeps text, buttons,
+       fields, paddings and icons in step and renders them as vectors instead of a scaled bitmap. -->
+  <LayoutTransformControl LayoutTransform="{Binding InterfaceScaleTransform}">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="Auto,*" ClipToBounds="True">
+      <!-- Persistent release and project notices have their own row, including during onboarding. -->
+      <StackPanel Grid.ColumnSpan="2">
+        <Border Classes="banner" IsVisible="{Binding HasReleaseNotification}" Margin="12,8">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding ReleaseNotificationText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <WrapPanel>
+              <Button Classes="primary" Content="{l:T update.notification.open}" Command="{Binding OpenReleaseNotificationCommand}" Margin="0,0,8,0" />
+              <Button Classes="ghost" Content="{l:T update.notification.dismiss}" Command="{Binding DismissReleaseNotificationCommand}" />
             </WrapPanel>
-            <Expander Header="{l:T onboarding.appearance}" HorizontalAlignment="Stretch">
-              <StackPanel Spacing="10">
-                <TextBlock Classes="caps" Text="{l:T settings.language}" />
-                <ComboBox ItemsSource="{x:Static vm:MainViewModel.OnboardingLanguages}" SelectedItem="{Binding OnboardingLanguage}" HorizontalAlignment="Stretch">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
-                      <TextBlock Text="{Binding Converter={x:Static l:PrefixLocConverter.Instance}, ConverterParameter=lang.}" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-                <TextBlock Classes="caps" Text="{l:T settings.theme}" />
-                <Border Background="{DynamicResource Surface2Brush}" CornerRadius="{DynamicResource RadiusLarge}" Padding="4" HorizontalAlignment="Left">
-                  <WrapPanel>
-                    <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeLight}"><TextBlock Text="{l:T theme.light}" /></RadioButton>
-                    <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeOled}"><TextBlock Text="{l:T theme.oled}" /></RadioButton>
-                    <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeSystem}"><TextBlock Text="{l:T theme.system}" /></RadioButton>
-                  </WrapPanel>
-                </Border>
-              </StackPanel>
-            </Expander>
           </StackPanel>
         </Border>
-      </ScrollViewer>
-    </Border>
+        <!-- Maintainer announcement from notice.json in the repository (issue #193). -->
+        <Border Classes="banner" Classes.bad="{Binding IsNoticeCritical}" IsVisible="{Binding HasNotice}" Margin="12,8">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding NoticeTitle}" IsVisible="{Binding HasNoticeTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding NoticeText}" TextWrapping="Wrap" />
+            <WrapPanel>
+              <Button Classes="primary" Content="{l:T notice.open}" IsVisible="{Binding HasNoticeUrl}"
+                      Command="{Binding OpenNoticeCommand}" Margin="0,0,8,0" />
+              <Button Classes="ghost" Content="{l:T notice.dismiss}" Command="{Binding DismissNoticeCommand}" />
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      <Grid Grid.Row="1" Grid.RowSpan="3" Grid.ColumnSpan="2" RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*">
+      <!-- Desktop sidebar -->
+      <Border x:Name="DesktopSidebar" Grid.RowSpan="3" Width="204" IsVisible="{Binding !IsCompact}" IsEnabled="{Binding CanUseWorkspace}"
+              Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="14,24,14,16">
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="10,0,6,28">
+            <Image Source="{StaticResource BrandLogo}" Width="34" Height="34" VerticalAlignment="Center" />
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="BYDLO" FontWeight="SemiBold" FontSize="18" LetterSpacing="0.3" />
+            </StackPanel>
+          </StackPanel>
+
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+              <ItemsControl ItemsSource="{Binding ConnectionNavItems}" ItemTemplate="{StaticResource DesktopNavigationItem}" />
+              <TextBlock Classes="muted" Text="{l:T nav.group.network}" FontSize="12" FontWeight="Medium" Margin="12,18,0,7" />
+              <ItemsControl ItemsSource="{Binding NetworkNavItems}" ItemTemplate="{StaticResource DesktopNavigationItem}" />
+            </StackPanel>
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="2" Spacing="8">
+            <Border Height="1" Background="{DynamicResource LineBrush}" Margin="4,0" />
+            <RadioButton Classes="nav" GroupName="nav"
+                         IsChecked="{Binding SettingsNav.IsSelected, Mode=OneWay}"
+                         Command="{Binding NavigateCommand}" CommandParameter="settings"
+                         AutomationProperties.Name="{Binding SettingsNav.Title}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <c:OutlineIcon Data="{StaticResource LineSettings}" />
+                <TextBlock Text="{Binding SettingsNav.Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </RadioButton>
+            <!-- Contributors page entry (issue #168); the list itself comes from GitHub, never hardcoded. -->
+            <RadioButton x:Name="ContributorsNavButton" Classes="nav" GroupName="nav"
+                         IsChecked="{Binding ContributorsNav.IsSelected, Mode=OneWay}"
+                         Command="{Binding NavigateCommand}" CommandParameter="contributors"
+                         AutomationProperties.Name="{Binding ContributorsNav.Title}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <c:OutlineIcon Data="{StaticResource LineUsers}" />
+                <TextBlock Text="{Binding ContributorsNav.Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </RadioButton>
+            <Border Classes="pill warn" IsVisible="{Binding IsMock}" HorizontalAlignment="Left">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <c:OutlineIcon Data="{StaticResource LineFlask}" Width="12" Height="12" Foreground="{DynamicResource WarningBrush}" />
+                <TextBlock Text="{l:T mock.badge}" />
+              </StackPanel>
+            </Border>
+            <TextBlock Classes="faint" Text="{Binding Settings.Version, StringFormat='v{0} · GPL-3.0'}" Margin="4,0" />
+          </StackPanel>
+
+        </Grid>
+      </Border>
+
+      <!-- Compact header -->
+      <Grid Grid.Column="1" IsVisible="{Binding IsCompact}" ColumnDefinitions="Auto,*,Auto" Margin="16,12,16,4">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Image Source="{StaticResource BrandLogo}" Width="28" Height="28" VerticalAlignment="Center" />
+          <TextBlock Text="BYDLO" FontWeight="Bold" FontSize="16" LetterSpacing="0" VerticalAlignment="Center" />
+        </StackPanel>
+        <Border Grid.Column="2" Classes="pill warn" IsVisible="{Binding IsMock}">
+          <TextBlock Text="{l:T mock.badge}" />
+        </Border>
+      </Grid>
+
+      <!-- Content -->
+      <DockPanel Grid.Row="1" Grid.Column="1" IsEnabled="{Binding CanUseWorkspace}">
+        <Border DockPanel.Dock="Top" IsVisible="{Binding IsSettingsDetail}" Padding="24,12,24,0">
+          <Button Classes="ghost" Content="{l:T nav.settings.back}" Command="{Binding NavigateCommand}" CommandParameter="settings" />
+        </Border>
+        <TransitioningContentControl Classes="page-host" Content="{Binding CurrentPage}" />
+      </DockPanel>
+
+      <!-- Compact bottom navigation -->
+      <Border Grid.Row="2" Grid.Column="1" IsVisible="{Binding IsCompact}" IsEnabled="{Binding CanUseWorkspace}"
+              Margin="0"
+              Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="4,6">
+        <ItemsControl ItemsSource="{Binding PrimaryNavItems}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NavItem">
+              <RadioButton Classes="nav navbottom" GroupName="bottomnav" HorizontalContentAlignment="Center"
+                           IsChecked="{Binding IsSelected, Mode=OneWay}"
+                           Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).NavigateCommand}"
+                           CommandParameter="{Binding Key}" AutomationProperties.Name="{Binding Title}">
+                <StackPanel Spacing="3" HorizontalAlignment="Center">
+                  <c:OutlineIcon Data="{Binding IconKey, Converter={x:Static l:IconConverter.Instance}}" HorizontalAlignment="Center" />
+                  <TextBlock Text="{Binding ShortTitle}" FontSize="10" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </RadioButton>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <!-- Orphan engines banner -->
+      <Border Grid.Row="1" Grid.Column="1" Classes="banner" IsVisible="{Binding HasOrphans}"
+              VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,12">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <c:OutlineIcon Data="{StaticResource LineAlert}" Foreground="{DynamicResource WarningBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{l:T orphans.text}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
+          <Button Classes="ghost" Content="{l:T orphans.stop}" Command="{Binding CleanupOrphansCommand}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Crash report banner -->
+      <Border Grid.Row="1" Grid.Column="1" Classes="banner" IsVisible="{Binding HasCrashReports}"
+              VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,52">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <c:OutlineIcon Data="{StaticResource LineAlert}" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{l:T crash.text}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
+          <Button Classes="ghost" Content="{l:T crash.open}" Command="{Binding OpenCrashFolderCommand}" />
+          <Button Classes="ghost" Content="{l:T crash.copy}" Command="{Binding CopyCrashReportCommand}" />
+          <Button Classes="ghost" Content="{l:T crash.dismiss}" Command="{Binding DismissCrashReportsCommand}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Toast -->
+      <Border Grid.Row="1" Grid.Column="1" IsVisible="{Binding HasVisibleToast}"
+              VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="16,0,16,22" MaxWidth="560"
+              CornerRadius="{DynamicResource RadiusMedium}" Padding="16,11"
+              Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" AutomationProperties.LiveSetting="Polite">
+          <c:OutlineIcon Data="{StaticResource LineAlert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding ToastIsError}" Width="16" Height="16" />
+          <c:OutlineIcon Data="{StaticResource LineInfo}" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding !ToastIsError}" Width="16" Height="16" />
+          <TextBlock Grid.Column="1" Text="{Binding Toast}" TextWrapping="Wrap" />
+        </Grid>
+      </Border>
+      <Border Grid.Row="1" Grid.Column="1" Classes="banner" VerticalAlignment="Top" Margin="16,12"
+              IsVisible="{Binding ClipboardOffer, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{Binding ClipboardOffer}" TextWrapping="Wrap" />
+          <WrapPanel>
+            <Button Classes="primary" Content="{l:T import.preview}" Command="{Binding AcceptClipboardOfferCommand}" Margin="0,0,8,0" />
+            <Button Classes="ghost" Content="{l:T import.dismiss}" Command="{Binding DismissClipboardOfferCommand}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+      <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Margin="8" CornerRadius="{DynamicResource RadiusLarge}" Padding="24"
+              IsVisible="{Binding IsDragOver}" IsHitTestVisible="False" BorderThickness="3"
+              BorderBrush="{DynamicResource AccentBrush}" Background="{DynamicResource Surface2Brush}" Opacity="0.94">
+        <TextBlock Text="{l:T import.drop}" FontSize="24" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+      <Border Grid.RowSpan="3" Grid.ColumnSpan="2" Background="{DynamicResource BackdropBrush}" IsVisible="{Binding HasImportPreview}"
+              KeyboardNavigation.TabNavigation="Cycle">
+        <Border Classes="panel" MaxWidth="620" Margin="24" VerticalAlignment="Center" MaxHeight="650">
+          <Grid RowDefinitions="Auto,*,Auto">
+            <TextBlock Classes="h2" Text="{l:T import.preview}" Margin="0,0,0,16" />
+            <ScrollViewer Grid.Row="1" MaxHeight="420">
+              <ItemsControl ItemsSource="{Binding ImportPreviewItems}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+            <WrapPanel Grid.Row="2" Margin="0,16,0,0" IsEnabled="{Binding !IsImportBusy}">
+              <Button Classes="primary" Content="{l:T import.add}" Command="{Binding ConfirmImportCommand}" IsEnabled="{Binding CanConfirmImport}" Margin="0,0,8,0" />
+              <Button Classes="ghost" Content="{l:T import.dismiss}" Command="{Binding CancelImportCommand}" />
+            </WrapPanel>
+          </Grid>
+        </Border>
+      </Border>
+
+      <Border Grid.RowSpan="3" Grid.ColumnSpan="2" IsVisible="{Binding IsAddServerOpen}" Background="{DynamicResource BackdropBrush}"
+              KeyboardNavigation.TabNavigation="Cycle">
+        <v:AddServerWizardView DataContext="{Binding AddServerWizard}" />
+      </Border>
+
+      <Border Grid.RowSpan="3" Grid.ColumnSpan="2" IsVisible="{Binding IsChainEditorOpen}" Background="{DynamicResource BackdropBrush}"
+              KeyboardNavigation.TabNavigation="Cycle">
+        <v:ChainEditorView DataContext="{Binding ChainEditor}" />
+      </Border>
+
+      <!-- First-run onboarding -->
+      <Border Grid.RowSpan="3" Grid.ColumnSpan="2" IsVisible="{Binding IsOnboardingVisible}" Background="{DynamicResource ScrimBrush}"
+              KeyboardNavigation.TabNavigation="Cycle">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Center">
+          <Border Classes="dialog" MaxWidth="540" Margin="18" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <StackPanel Spacing="18">
+              <Image Source="{StaticResource BrandLogo}" Width="42" Height="42" HorizontalAlignment="Left" />
+              <TextBlock Classes="display" Text="{l:T onboarding.title}" TextWrapping="Wrap" />
+              <TextBlock Classes="muted" Text="{l:T onboarding.text}" TextWrapping="Wrap" />
+              <!-- Three independent, initially unchecked consents (issue #438). Nothing is pre-selected. -->
+              <Border Classes="tile">
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="caps" Text="{l:T onboarding.consent.title}" />
+                  <TextBlock Classes="faint" Text="{l:T onboarding.consent.text}" TextWrapping="Wrap" />
+                  <CheckBox IsChecked="{Binding ConsentAutomaticUpdates}" AutomationProperties.Name="{l:T onboarding.consent.updates}">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{l:T onboarding.consent.updates}" TextWrapping="Wrap" />
+                      <TextBlock Classes="faint" Text="{l:T onboarding.consent.updates.hint}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </CheckBox>
+                  <CheckBox IsChecked="{Binding ConsentNotifications}" AutomationProperties.Name="{l:T onboarding.consent.notifications}">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{l:T onboarding.consent.notifications}" TextWrapping="Wrap" />
+                      <TextBlock Classes="faint" Text="{l:T onboarding.consent.notifications.hint}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </CheckBox>
+                  <CheckBox IsChecked="{Binding ConsentThemes}" AutomationProperties.Name="{l:T onboarding.consent.themes}">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{l:T onboarding.consent.themes}" TextWrapping="Wrap" />
+                      <TextBlock Classes="faint" Text="{l:T onboarding.consent.themes.hint}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </CheckBox>
+                  <TextBlock Classes="caps" Text="{l:T onboarding.consent.sources}" />
+                  <WrapPanel>
+                    <Button Classes="text-action" Content="{l:T onboarding.consent.source.releases}" Margin="0,0,14,0"
+                            Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static gh:GitHubSources.Releases}" />
+                    <Button Classes="text-action" Content="{l:T onboarding.consent.source.notice}" Margin="0,0,14,0"
+                            Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static gh:GitHubSources.Notice}" />
+                    <Button Classes="text-action" Content="{l:T onboarding.consent.source.themes}"
+                            Command="{Binding OpenUrlCommand}" CommandParameter="{x:Static gh:GitHubSources.ThemeGallery}" />
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+              <WrapPanel HorizontalAlignment="Left">
+                <Button Classes="primary" Content="{l:T onboarding.start}" Command="{Binding StartOnboardingImportCommand}" Margin="0,0,8,8" />
+                <Button Classes="quiet" Content="{l:T onboarding.skip}" Command="{Binding FinishOnboardingCommand}" Margin="0,0,0,8" />
+              </WrapPanel>
+              <Expander Header="{l:T onboarding.appearance}" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="caps" Text="{l:T settings.language}" />
+                  <ComboBox ItemsSource="{x:Static vm:MainViewModel.OnboardingLanguages}" SelectedItem="{Binding OnboardingLanguage}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding Converter={x:Static l:PrefixLocConverter.Instance}, ConverterParameter=lang.}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <TextBlock Classes="caps" Text="{l:T settings.theme}" />
+                  <Border Background="{DynamicResource Surface2Brush}" CornerRadius="{DynamicResource RadiusLarge}" Padding="4" HorizontalAlignment="Left">
+                    <WrapPanel>
+                      <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeLight}"><TextBlock Text="{l:T theme.light}" /></RadioButton>
+                      <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeOled}"><TextBlock Text="{l:T theme.oled}" /></RadioButton>
+                      <RadioButton Classes="segment" GroupName="onboarding-theme" IsChecked="{Binding OnboardingThemeSystem}"><TextBlock Text="{l:T theme.system}" /></RadioButton>
+                    </WrapPanel>
+                  </Border>
+                </StackPanel>
+              </Expander>
+            </StackPanel>
+          </Border>
+        </ScrollViewer>
+      </Border>
+      </Grid>
     </Grid>
-  </Grid>
+  </LayoutTransformControl>
 </UserControl>

@@ -106,6 +106,9 @@ public sealed partial class App : Application
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
             single.MainView = new MainView { DataContext = shell };
+            // No window event on this head: the view exists, so the readiness confirmation can run (issue #412).
+            Services.ConfirmUpdateReadiness();
+            shell.ShowUpdateRecoveryToast();
         }
 
         base.OnFrameworkInitializationCompleted();
