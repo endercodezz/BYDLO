@@ -4,6 +4,7 @@ using Bydlo.Engines.TgWsProxy;
 namespace Bydlo.Tests;
 
 /// <summary>Allocation-free upstream path (issue #359); wire bytes are unchanged.</summary>
+[Collection("AllocationMeasurements")]
 public sealed class TgWsProxyAllocationTests
 {
     /// <summary>Answers the upgrade once (optionally with trailing frame bytes), then idles; writes are recorded or discarded.</summary>
