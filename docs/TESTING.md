@@ -446,8 +446,8 @@ dotnet run --project tools/Bydlo.Screenshots -c Release -- .tmp/share-verificati
 В Mock-режиме и при `BYDLO_SAFE_DEV=1` реальные проверки запрещены; результаты не имитируются.
 Адреса редактируются: от 1 до 20 HTTP(S)-URL без учётных данных, query и fragment.
 
-Использован управляемый перенос **стандартной HTTP/TLS-части Test Zapret 1.10.3**:
-[исходник Flowseal](https://github.com/Flowseal/zapret-discord-youtube/blob/1.10.3/utils/test%20zapret.ps1).
+Использован управляемый перенос **стандартной HTTP/TLS-части Test Zapret 1.10.4**:
+[исходник Flowseal](https://github.com/Flowseal/zapret-discord-youtube/blob/1.10.4/utils/test%20zapret.ps1).
 На Windows проверяется наличие исходного Test Zapret в установленном пакете. Его интерактивный
 координатор не исполняется: он сам перебирает BAT-файлы, меняет ipset и завершает все winws
 по имени, поэтому для встраивания в приложение не подходит. Вместо повторного вложенного

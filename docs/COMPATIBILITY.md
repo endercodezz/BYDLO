@@ -136,7 +136,7 @@ Hysteria2: ссылки с port hopping принимают списки порт
 | Движок | Как BYDLO его получает |
 |---|---|
 | sing-box 1.14.4, Xray-core 26.10.31 | Упаковываются для всех пяти десктопных платформ с проверкой SHA-256. Загрузка по запросу остаётся запасным путём. |
-| Zapret: Flowseal 1.10.3 / bol-van 72.13 | Встроен в релизы Windows x64, Linux x64/ARM64 и macOS, только Apple Silicon; CI проверяет SHA-256. Загрузка по запросу и папка пользователя — резервные варианты. |
+| Zapret: Flowseal 1.10.4 / bol-van 72.13 | Встроен в релизы Windows x64, Linux x64/ARM64 и macOS, только Apple Silicon; CI проверяет SHA-256. Загрузка по запросу и папка пользователя — резервные варианты. |
 | tg-ws-proxy 1.11.4 | Ничего не скачивается: ядро перенесено на C# и встроено в BYDLO. Без HTTP/2 для медиа через Cloudflare (`cf_h2`), без Cloudflare Worker и PROXY protocol |
 | AmneziaWG 3.1.20260828 | Windows x64/ARM64 и Linux x64/ARM64: собственный процесс-хост upstream Go-библиотеки, без официального клиента и awg-quick. Windows: встроен подписанный Wintun 0.14.1. macOS Apple Silicon использует utun. |
 | OpenVPN 2.7.9 | Все пять платформ: консольный движок. Windows: DLL и подписанный DCO 2.8.14 извлечены из закреплённого официального MSI; установка DCO и выделенного адаптера — отдельная команда с согласием и правами администратора. Linux/macOS: сборка со статическим OpenSSL 3.6.5; Linux также со статическим libcap-ng 0.9.6. |
@@ -320,7 +320,7 @@ LAN (IPv4, IPv6 link-local и ULA) и mesh-диапазоны исключают
 [SOCKS outbound](https://sing-box.sagernet.org/configuration/outbound/socks/).
 
 Автоподбор Zapret доступен в «Инструменты → Zapret»: Windows — аргументы winws из найденных BAT,
-Linux/macOS — нативные пресеты. Стандартные HTTP/TLS-проверки Test Zapret 1.10.3 перенесены
+Linux/macOS — нативные пресеты. Стандартные HTTP/TLS-проверки Test Zapret 1.10.4 перенесены
 в BYDLO; интерактивный скрипт не запускается. Проверка только по явному действию пользователя,
 с правами администратора/root, curl и возможностью отмены. Область измерений и ограничения:
 [автоподбор в TESTING.md](TESTING.md#автоподбор-zapret).

@@ -69,14 +69,14 @@
     },
     {
       "id": "zapret",
-      "version": "1.10.3",
+      "version": "1.10.4",
       "license": "MIT (Flowseal, bol-van); bundled WinDivert: LGPL-3.0 / GPL-2.0",
       "upstream": "https://github.com/Flowseal/zapret-discord-youtube",
       "assets": {
         "windows-x64": {
-          "url": "https://github.com/Flowseal/zapret-discord-youtube/releases/download/1.10.3/zapret-discord-youtube-1.10.3.zip",
-          "sha256": "244314ae1c24538a0d751601da8e0c925c843371eec4456eb15f14c4fd6b7058",
-          "executable": "zapret-discord-youtube-1.10.3/bin/winws.exe"
+          "url": "https://github.com/Flowseal/zapret-discord-youtube/releases/download/1.10.4/zapret-discord-youtube-1.10.4.zip",
+          "sha256": "291af673bd0238506f9548e0e94ca0abf244000f4c9a06960544fb01c5f97b34",
+          "executable": "zapret-discord-youtube-1.10.4/bin/winws.exe"
         }
       }
     },

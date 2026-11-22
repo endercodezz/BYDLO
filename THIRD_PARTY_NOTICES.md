@@ -164,7 +164,7 @@ tpws сохраняется без изменений; наличие в нём 
 
 Дополнения BYDLO к списку доменов Flowseal основаны на списке сопровождающего BYDLO.
 
-- Flowseal 1.10.3: MIT, текст из закреплённого [LICENSE.txt](https://github.com/Flowseal/zapret-discord-youtube/blob/1.10.3/LICENSE.txt).
+- Flowseal 1.10.4: MIT, текст из закреплённого [LICENSE.txt](https://github.com/Flowseal/zapret-discord-youtube/blob/1.10.4/LICENSE.txt).
 - bol-van/zapret 72.13: MIT, подтверждён по [docs/LICENSE.txt](https://github.com/bol-van/zapret/blob/v72.13/docs/LICENSE.txt), включая copyright bol-van. Универсальный `binaries/mac64/tpws` содержит x86_64 и arm64.
 - WinDivert 2.2: выбираем LGPL-3.0; комплект содержит тексты LGPLv3/GPLv3/GPLv2 и закреплённые исходники v2.2.2. Исходный код: https://github.com/basil00/WinDivert/tree/v2.2.2.
 - Cygwin DLL 3.4.10: LGPLv3+ и Linking Exception, тексты `CYGWIN_LICENSE`, LGPLv3 и дополнительные notices Newlib включены. Архив `cygwin-3.4.10-1-src.tar.xz` содержит соответствующие исходники и cygport recipe; источник — зеркало дистрибутива Cygwin в ČVUT.
@@ -174,7 +174,7 @@ tpws сохраняется без изменений; наличие в нём 
 ## Перенос стандартных проверок Test Zapret
 
 `src/Bydlo.Engines/Zapret/TestZapretProbe.cs` переносит стандартную HTTP/TLS-часть
-[Flowseal Test Zapret 1.10.3](https://github.com/Flowseal/zapret-discord-youtube/blob/1.10.3/utils/test%20zapret.ps1)
+[Flowseal Test Zapret 1.10.4](https://github.com/Flowseal/zapret-discord-youtube/blob/1.10.4/utils/test%20zapret.ps1)
 в управляемый жизненный цикл BYDLO. Изменения: структурированные результаты curl, отдельные
 таймауты/неизвестные результаты, проверка HTTP-кода, реальное время успешных ответов,
 отмена и запуск только собственных дочерних процессов. Интерактивный координатор, ping

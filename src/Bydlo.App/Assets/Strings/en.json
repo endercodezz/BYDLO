@@ -829,7 +829,7 @@
   "tools.select.warning": "Takes several minutes and temporarily enables Zapret. Administrator/root rights are required. You can cancel; the original state is restored before applying a result.",
   "tools.select.brief": "Success {0}, errors {1}, timeouts {2}, unknown {3}",
   "tools.select.curl": "curl is missing or incompatible. Install curl with HTTP/TLS support and retry.",
-  "tools.select.details": "Takes several minutes and temporarily enables Zapret. Administrator/root rights are required. Tests each BAT configuration or native preset twice with the Test Zapret 1.10.3 standard HTTP/TLS suite. Results describe only these URLs and HTTP/TLS checks, not video playback, Discord voice, UDP or the whole BAT script. The original running configuration is restored before you apply a result.",
+  "tools.select.details": "Takes several minutes and temporarily enables Zapret. Administrator/root rights are required. Tests each BAT configuration or native preset twice with the Test Zapret 1.10.4 standard HTTP/TLS suite. Results describe only these URLs and HTTP/TLS checks, not video playback, Discord voice, UDP or the whole BAT script. The original running configuration is restored before you apply a result.",
   "tools.select.scope": "What is tested",
   "tools.startup.title": "Saved strategy check",
   "tools.startup.scope": "Checks only the remembered strategy with the Test Zapret HTTP/TLS suite (HTTP, TLS 1.2, TLS 1.3). Other strategies are never started. Success here does not prove that video playback, voice chat or UDP work.",
