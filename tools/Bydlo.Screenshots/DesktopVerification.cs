@@ -66,6 +66,14 @@ internal static class DesktopVerification
         Pump(50);
         if (!select.IsChecked || ((NativeMenuItem)servers.Items[0]).IsChecked)
         { throw new InvalidOperationException("Tray radio selection did not refresh."); }
+        // Editing a profile replaces its item without renaming it; the tray must select the current item,
+        // not the one captured when the submenu was built, or it connects with pre-edit settings.
+        shell.ReloadProfiles();
+        Pump(50);
+        ((NativeMenuItem)servers.Items[0]).Command!.Execute(null);
+        Pump(50);
+        if (!ReferenceEquals(shell.SelectedProfile, shell.Profiles[0]))
+        { throw new InvalidOperationException("Tray selected a stale profile item after a reload."); }
 
         // Registration must remain blocked in developer sessions without touching the OS.
         shell.Settings.StartWithSystem = true;

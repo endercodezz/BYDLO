@@ -197,7 +197,9 @@ public sealed class DesktopIntegration : IDisposable
                 _servers.Items.Add(new NativeMenuItem
                 {
                     Header = profile.Name, ToggleType = NativeMenuItemToggleType.Radio,
-                    Command = new RelayCommand(() => _shell.SelectedProfile = profile),
+                    // Resolve by id on click: editing a profile replaces its item without renaming it,
+                    // so a captured item would connect with the pre-edit settings.
+                    Command = new RelayCommand(() => SelectProfile(profile.Id)),
                 });
             }
             _profilesState = profilesState;
@@ -208,6 +210,15 @@ public sealed class DesktopIntegration : IDisposable
         }
         UpdateIcon();
         _menuState = state;
+    }
+
+    /// <summary>Selects the current item for <paramref name="id"/>; a profile deleted meanwhile is ignored.</summary>
+    internal void SelectProfile(Guid id)
+    {
+        if (_shell.Profiles.FirstOrDefault(p => p.Id == id) is { } current)
+        {
+            _shell.SelectedProfile = current;
+        }
     }
 
     private ConnectionStatus? _iconStatus;
