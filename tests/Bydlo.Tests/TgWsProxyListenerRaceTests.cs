@@ -1,4 +1,5 @@
 using System.IO;
+using System.Net;
 using Bydlo.Engines.TgWsProxy;
 
 namespace Bydlo.Tests;
@@ -99,7 +100,7 @@ public sealed class TgWsProxyListenerRaceTests
 
         public bool Disposed => Volatile.Read(ref _disposed) != 0;
 
-        public async Task<(Stream Stream, string Label)> AcceptAsync(CancellationToken ct)
+        public async Task<(Stream Stream, string Label, IPAddress? RemoteAddress)> AcceptAsync(CancellationToken ct)
         {
             if (_blockForever)
             {

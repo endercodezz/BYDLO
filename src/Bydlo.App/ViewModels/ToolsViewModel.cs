@@ -56,6 +56,8 @@ public sealed partial class ToolsViewModel : PageViewModel
         _tgCfFallback = s.TgWsProxy.CfProxyFallback;
         _tgVerbose = s.TgWsProxy.Verbose;
         _tgCfDomains = string.Join('\n', s.TgWsProxy.CfProxyDomains);
+        _tgProxyProtocol = s.TgWsProxy.ProxyProtocol;
+        _tgProxyProtocolSources = string.Join('\n', s.TgWsProxy.ProxyProtocolTrustedSources);
         LoadSelection();
         shell.PropertyChanged += OnShellChanged;
         L.PropertyChanged += (_, _) =>
@@ -177,6 +179,12 @@ public sealed partial class ToolsViewModel : PageViewModel
     private string _tgCfDomains;
 
     [ObservableProperty]
+    private bool _tgProxyProtocol;
+
+    [ObservableProperty]
+    private string _tgProxyProtocolSources;
+
+    [ObservableProperty]
     private string _tgLink = "";
 
     [ObservableProperty]
@@ -216,6 +224,8 @@ public sealed partial class ToolsViewModel : PageViewModel
             TgCfFallback = s.TgWsProxy.CfProxyFallback;
             TgVerbose = s.TgWsProxy.Verbose;
             TgCfDomains = string.Join('\n', s.TgWsProxy.CfProxyDomains);
+            TgProxyProtocol = s.TgWsProxy.ProxyProtocol;
+            TgProxyProtocolSources = string.Join('\n', s.TgWsProxy.ProxyProtocolTrustedSources);
         }
         finally { _loadingSettings = false; }
     }
@@ -451,6 +461,17 @@ public sealed partial class ToolsViewModel : PageViewModel
             return false;
         }
 
+        var sources = TgProxyProtocolSources.Split('\n', ',', ' ').Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+        try
+        {
+            TgWsProxyOptions.ParseTrustedSources(sources);
+        }
+        catch (EngineException ex)
+        {
+            Shell.ShowToast(Loc.Error(ex.Message, ex.LocalizationKey), isError: true);
+            return false;
+        }
+
         var t = Services.Settings.TgWsProxy;
         t.Host = string.IsNullOrWhiteSpace(TgHost) ? "127.0.0.1" : TgHost.Trim();
         t.Port = TgPort;
@@ -459,6 +480,8 @@ public sealed partial class ToolsViewModel : PageViewModel
         t.CfProxyFallback = TgCfFallback;
         t.Verbose = TgVerbose;
         t.CfProxyDomains = [.. TgCfDomains.Split('\n', ',', ' ').Select(x => x.Trim()).Where(x => x.Length > 0)];
+        t.ProxyProtocol = TgProxyProtocol;
+        t.ProxyProtocolTrustedSources = sources;
         _ = Services.SaveSettingsAsync();
         return true;
     }

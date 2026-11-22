@@ -179,5 +179,7 @@ internal static class BackupCopy
         Verbose = source.Verbose,
         CfProxyFallback = source.CfProxyFallback,
         CfProxyDomains = List(source.CfProxyDomains),
+        ProxyProtocol = source.ProxyProtocol,
+        ProxyProtocolTrustedSources = List(source.ProxyProtocolTrustedSources),
     };
 }

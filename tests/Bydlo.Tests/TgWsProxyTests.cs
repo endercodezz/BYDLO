@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Bydlo.Core.Engines;
@@ -744,11 +745,11 @@ internal sealed class FakeTgNetwork : ITgNetwork
             _incoming.Writer.TryComplete();
         }
 
-        public async Task<(Stream Stream, string Label)> AcceptAsync(CancellationToken ct)
+        public async Task<(Stream Stream, string Label, IPAddress? RemoteAddress)> AcceptAsync(CancellationToken ct)
         {
             try
             {
-                return (await _incoming.Reader.ReadAsync(ct), "fake");
+                return (await _incoming.Reader.ReadAsync(ct), "fake", IPAddress.Loopback);
             }
             catch (System.Threading.Channels.ChannelClosedException) when (_failure is not null)
             {

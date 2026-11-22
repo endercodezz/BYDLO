@@ -54,4 +54,28 @@ public sealed class BackupSettingsValidationTests
         Assert.Equal(DnsTransport.Https, data.Settings.Routing.RemoteDnsTransport);
         Assert.Equal("off", data.Settings.DpiDefaults.Fragment);
     }
+
+    [Fact]
+    public void Rejects_null_or_invalid_proxy_protocol_trusted_sources()
+    {
+        var data = new BackupData();
+        data.Settings.TgWsProxy.ProxyProtocolTrustedSources = null!;
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
+
+        data.Settings.TgWsProxy.ProxyProtocolTrustedSources = ["127.0.0.1", "not-an-ip"];
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
+
+        data.Settings.TgWsProxy.ProxyProtocolTrustedSources = ["127.0.0.1", "::1"];
+        data.Settings.TgWsProxy.ProxyProtocol = true;
+        BackupArchive.Validate(data);
+    }
+
+    [Fact]
+    public void Accepts_settings_from_before_the_proxy_protocol_fields()
+    {
+        var data = System.Text.Json.JsonSerializer.Deserialize<BackupData>("""{"Settings":{"TgWsProxy":{"Port":1443}}}""")!;
+        BackupArchive.Validate(data);
+        Assert.False(data.Settings.TgWsProxy.ProxyProtocol);
+        Assert.Equal(new[] { "127.0.0.1", "::1" }, data.Settings.TgWsProxy.ProxyProtocolTrustedSources.ToArray());
+    }
 }

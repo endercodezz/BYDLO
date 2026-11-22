@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -141,13 +142,13 @@ public sealed class TgWsProxyServer : IAsyncDisposable
     }
 
     /// <summary>Serves one accepted client connection (exposed for in-memory tests).</summary>
-    internal async Task HandleClientAsync(Stream client, string label)
+    internal async Task HandleClientAsync(Stream client, string label, IPAddress? remoteAddress = null)
     {
         Stats.Opened();
         var ct = _stop.Token;
         try
         {
-            var init = await ReadClientInitAsync(client, label, ct).ConfigureAwait(false);
+            var init = await ReadClientInitAsync(client, label, remoteAddress, ct).ConfigureAwait(false);
             if (init is null)
             {
                 return;
@@ -212,8 +213,30 @@ public sealed class TgWsProxyServer : IAsyncDisposable
         }
     }
 
-    private async Task<(byte[] Handshake, Stream Stream)?> ReadClientInitAsync(Stream client, string label, CancellationToken ct)
+    private async Task<(byte[] Handshake, Stream Stream)?> ReadClientInitAsync(Stream client, string label, IPAddress? remoteAddress, CancellationToken ct)
     {
+        if (Options.ProxyProtocol)
+        {
+            if (!ProxyProtocol.IsTrustedSource(remoteAddress, Options.ProxyProtocolTrustedSources))
+            {
+                // Bytes of an untrusted peer are never interpreted as a header: they stay client data.
+                _context.Log(TgLogLevel.Debug, $"[{label}] PROXY protocol header not expected from this peer");
+            }
+            else
+            {
+                var header = await ProxyProtocol.ReadAsync(client, ProxyProtocol.ReadTimeout, ct).ConfigureAwait(false);
+                if (header is null)
+                {
+                    Stats.Bad();
+                    _context.Log(TgLogLevel.Warning, $"[{label}] invalid PROXY protocol header, closing");
+                    return null;
+                }
+
+                label = header.Describe(label);
+                _context.Log(TgLogLevel.Debug, $"[{label}] PROXY protocol v1 header accepted ({header.Family})");
+            }
+        }
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(HandshakeTimeout);
         var first = new byte[1];
@@ -598,11 +621,12 @@ public sealed class TgWsProxyServer : IAsyncDisposable
 
             Stream stream;
             string label;
+            IPAddress? remoteAddress;
             try
             {
                 // The blocking AcceptAsync call itself stays outside the lock so
                 // DisposeAsync can still take the gate while we are waiting.
-                (stream, label) = await snapshot.AcceptAsync(ct).ConfigureAwait(false);
+                (stream, label, remoteAddress) = await snapshot.AcceptAsync(ct).ConfigureAwait(false);
             }
             catch (Exception) when (ct.IsCancellationRequested)
             {
@@ -625,7 +649,7 @@ public sealed class TgWsProxyServer : IAsyncDisposable
                 continue;
             }
 
-            var task = HandleClientAsync(stream, label);
+            var task = HandleClientAsync(stream, label, remoteAddress);
             _clients.TryAdd(task, 0);
             _ = task.ContinueWith(t => _clients.TryRemove(t, out _), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
@@ -772,6 +796,11 @@ public sealed class TgWsProxyServer : IAsyncDisposable
         _context.Log(TgLogLevel.Info, Options.CfProxyFallback
             ? $"CF proxy: enabled ({(Options.CfProxyDomains.Count > 0 ? "custom domains" : "auto")})"
             : "CF proxy: disabled");
+        if (Options.ProxyProtocol)
+        {
+            _context.Log(TgLogLevel.Info, "PROXY protocol v1: enabled, trusted sources "
+                + string.Join(", ", Options.ProxyProtocolTrustedSources));
+        }
     }
 
     private sealed record Route(string Label, int Dc, bool IsMedia, bool IsTestDc, string MediaTag);
