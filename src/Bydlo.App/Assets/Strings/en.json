@@ -783,6 +783,7 @@
   "settings.update.auto.unavailable": "Unavailable for this copy: it was started from an archive or in Mock Mode. Install the Setup.exe build to update automatically.",
   "settings.update.deferred": "The update is downloaded but postponed. It installs on the next exit after every connection stops.",
   "settings.update.manual.deb": "BYDLO was installed from a .deb package, so your package manager owns it. Download the new .deb from the release page and install it with sudo apt install ./bydlo_<version>_amd64.deb. No apt repository is configured, so apt upgrade alone will not find new versions.",
+  "settings.update.manual.deb.repository": "BYDLO was installed from a .deb package and the BYDLO apt repository is configured, so apt owns it. Update it with sudo apt update && sudo apt upgrade. The built-in updater never changes files owned by dpkg.",
   "settings.update.manual.arch": "BYDLO was installed from an Arch package, so pacman owns it. Update it with your AUR helper (for example yay -S bydlo-bin) or rebuild the package. The built-in updater never changes files owned by pacman.",
   "settings.update.manual.nix": "BYDLO was installed from the Nix flake, so Nix owns it. Update it with nix profile upgrade or by rebuilding your NixOS configuration.",
   "settings.update.manual.portable": "This copy runs from a portable folder or an old ZIP release. To update, quit BYDLO completely, replace the whole folder with the new release and keep your data directory. Automatic migration to an installed build is not provided.",

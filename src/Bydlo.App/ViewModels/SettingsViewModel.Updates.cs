@@ -124,7 +124,7 @@ public sealed partial class SettingsViewModel
             ? L[recoveryGuidance]
             : SupportsAutomaticUpdates
                 ? (blocked ? L["settings.update.auto.unavailable"] : "")
-                : L[UpdateGuidance.KeyFor(Services.AutomaticUpdates.InstallKind)];
+                : L[UpdateGuidance.KeyFor(Services.AutomaticUpdates.InstallKind, Services.AptRepositoryConfigured)];
         RefreshUpdateDetail();
         OnPropertyChanged(nameof(UpdateStatus));
     }

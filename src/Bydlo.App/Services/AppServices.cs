@@ -66,6 +66,8 @@ public sealed class AppServices
             InstallKind = InstallKind,
             Recovery = UpdateRecovery,
         };
+        // Read-only probe of /etc/apt: the app never runs apt and never writes to system files (issue #488).
+        AptRepositoryConfigured = OperatingSystem.IsLinux() && AptRepositorySource.IsConfigured();
     }
 
     public string[] Args { get; }
@@ -146,6 +148,12 @@ public sealed class AppServices
 
     /// <summary>Local update recovery journal and readiness confirmation (issue #412).</summary>
     public UpdateRecovery UpdateRecovery { get; }
+
+    /// <summary>
+    /// Whether an apt source for the BYDLO repository is configured (issue #488). Detected once at
+    /// startup; tests and the headless UI verification override it.
+    /// </summary>
+    public bool AptRepositoryConfigured { get; set; }
 
     /// <summary>Whether privileged engines are delegated to the installed helper.</summary>
     public bool UsesPrivilegedHelper => HelperManagement.IsSupported && !Privileges.IsElevated &&
