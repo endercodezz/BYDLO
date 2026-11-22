@@ -94,6 +94,7 @@ internal static class BackupCopy
         SuggestClipboardLinks = source.SuggestClipboardLinks,
         Theme = source.Theme,
         ReduceMotion = source.ReduceMotion,
+        InterfaceScale = source.InterfaceScale,
         CustomThemeId = source.CustomThemeId,
         Language = source.Language,
         OnboardingCompleted = source.OnboardingCompleted,

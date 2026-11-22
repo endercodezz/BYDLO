@@ -207,6 +207,8 @@ public static class BackupArchive
         settings.ConsentsInitialized = current.ConsentsInitialized;
         // Custom theme files live next to the data directory and are not part of the backup.
         settings.CustomThemeId = current.CustomThemeId;
+        // The interface scale is a display preference, so a restored value is snapped to a supported step.
+        settings.NormalizeInterfaceScale();
         settings.MigrateLegacyTheme();
         if (settings.Theme == ThemePreference.Custom && settings.CustomThemeId is null)
         {
@@ -282,6 +284,7 @@ public static class BackupArchive
             s.TgWsProxy.DcIps is null || s.TgWsProxy.CfProxyDomains is null || s.TgWsProxy.Host is null || s.TgWsProxy.FakeTlsDomain is null ||
             s.LocalProxyUsername is null ||
             s.LocalProxyPort is < 1 or > 65534 || s.TgWsProxy.Port is < 1 or > 65535 ||
+            s.InterfaceScale is < AppSettings.MinInterfaceScale or > AppSettings.MaxInterfaceScale ||
             !Enum.IsDefined(s.Theme) || !Enum.IsDefined(s.Mode) || !Enum.IsDefined(s.MockScenario) || !Enum.IsDefined(s.IpCheckProvider) ||
             s.Language is not ("auto" or "en" or "ru"))
         { throw new InvalidDataException("Invalid settings."); }

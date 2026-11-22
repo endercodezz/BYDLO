@@ -576,6 +576,10 @@
 
   "settings.appearance": "Appearance",
   "settings.theme": "Theme",
+  "settings.scale": "Interface scale",
+  "settings.scale.hint": "Scales text, buttons, fields, paddings and icons together. 100% matches the system DPI; the system scale is applied on top of this value.",
+  "settings.scale.reset": "Reset to 100%",
+  "settings.scale.reset.done": "Interface scale reset to 100%.",
   "settings.language": "Language",
   "theme.light": "Light",
   "theme.oled": "Black",

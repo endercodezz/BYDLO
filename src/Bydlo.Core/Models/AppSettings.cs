@@ -53,6 +53,52 @@ public sealed class AppSettings
 
     public bool ReduceMotion { get; set; }
 
+    /// <summary>
+    /// Interface scale in percent (issue #477). The shell applies it once through a layout transform,
+    /// so text, buttons, fields, paddings and icons grow together and stay vector-sharp.
+    /// </summary>
+    public int InterfaceScale { get; set; } = DefaultInterfaceScale;
+
+    public const int DefaultInterfaceScale = 100;
+
+    public const int MinInterfaceScale = 80;
+
+    public const int MaxInterfaceScale = 150;
+
+    public const int InterfaceScaleStep = 10;
+
+    /// <summary>Every selectable scale, ascending. The default is in the middle of the list.</summary>
+    public static IReadOnlyList<int> InterfaceScaleSteps { get; } =
+        [.. Enumerable.Range(0, (MaxInterfaceScale - MinInterfaceScale) / InterfaceScaleStep + 1)
+            .Select(index => MinInterfaceScale + index * InterfaceScaleStep)];
+
+    /// <summary>
+    /// Clamps a stored, imported or hand-edited scale to the supported range and snaps it to the
+    /// nearest step, so the UI never shows a value it cannot offer.
+    /// </summary>
+    public static int ClampInterfaceScale(int value)
+    {
+        var clamped = Math.Clamp(value, MinInterfaceScale, MaxInterfaceScale);
+        var steps = (clamped - MinInterfaceScale + InterfaceScaleStep / 2) / InterfaceScaleStep;
+        return MinInterfaceScale + steps * InterfaceScaleStep;
+    }
+
+    /// <summary>Layout multiplier for <see cref="InterfaceScale"/>; 1.0 is 100%.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double InterfaceScaleFactor => ClampInterfaceScale(InterfaceScale) / 100.0;
+
+    /// <summary>Repairs a scale written by an older build or edited by hand. Returns true when changed.</summary>
+    public bool NormalizeInterfaceScale()
+    {
+        var clamped = ClampInterfaceScale(InterfaceScale);
+        if (clamped == InterfaceScale)
+        {
+            return false;
+        }
+        InterfaceScale = clamped;
+        return true;
+    }
+
     /// <summary>Installed custom theme id (file <c>themes/&lt;id&gt;.json</c>). Used only when <see cref="Theme"/> is Custom.</summary>
     public string? CustomThemeId { get; set; }
 

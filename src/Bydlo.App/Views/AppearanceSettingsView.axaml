@@ -17,6 +17,20 @@
           <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeSystem}"><TextBlock Text="{l:T theme.system}" /></RadioButton>
         </WrapPanel>
       </Border>
+      <TextBlock Classes="caps" Text="{l:T settings.scale}" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.InterfaceScales}" SelectedItem="{Binding InterfaceScale}"
+                  MinWidth="120" AutomationProperties.Name="{l:T settings.scale}"
+                  AutomationProperties.HelpText="{l:T settings.scale.hint}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="x:Int32">
+              <TextBlock Text="{Binding StringFormat='{}{0}%'}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Classes="ghost" Content="{l:T settings.scale.reset}" Command="{Binding ResetInterfaceScaleCommand}" />
+      </StackPanel>
+      <TextBlock Classes="faint" Text="{l:T settings.scale.hint}" TextWrapping="Wrap" />
       <TextBlock Classes="caps" Text="{l:T settings.language}" />
       <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.Languages}" SelectedItem="{Binding Language}" MinWidth="180" AutomationProperties.Name="{l:T settings.language}">
         <ComboBox.ItemTemplate>
