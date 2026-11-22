@@ -17,35 +17,38 @@
                 </Border>
                 <TextBlock Classes="display" Text="{l:T home.empty.title}" TextWrapping="Wrap" />
                 <TextBlock Classes="muted" Text="{l:T home.empty.text}" TextWrapping="Wrap" />
-                <WrapPanel Classes="empty-actions" ItemSpacing="8" LineSpacing="8">
-                <Button Classes="primary" Command="{Binding Shell.OpenAddServerCommand}" HorizontalContentAlignment="Center">
-                  <TextBlock Text="{l:T wizard.title}" Foreground="{DynamicResource OnPrimaryBrush}" TextWrapping="Wrap" TextAlignment="Center" />
-                </Button>
-                <Button Classes="ghost" Content="{l:T catalog.title}" Command="{Binding Shell.OpenImportCommand}" CommandParameter="catalog" HorizontalContentAlignment="Center" />
-                </WrapPanel>
-                <Expander Header="{l:T home.import.options}" HorizontalAlignment="Stretch">
-                  <StackPanel Spacing="8">
-                    <Grid ColumnDefinitions="*,12,*">
-                      <Button Classes="source-card" Command="{Binding Shell.OpenImportCommand}" CommandParameter="file" Padding="12">
-                        <StackPanel Spacing="8">
-                          <c:OutlineIcon Data="{StaticResource LineFolder}" HorizontalAlignment="Left" />
-                          <TextBlock Text="{l:T home.import.file}" TextWrapping="Wrap" />
+                <!-- Issue #436: one entry for every import source. The menu reuses the existing
+                     OpenImportCommand parameters, so no import path is lost. -->
+                <StackPanel Spacing="10" HorizontalAlignment="Left">
+                  <Button x:Name="AddServerEntry" Classes="primary" HorizontalContentAlignment="Center"
+                          AutomationProperties.Name="{l:T wizard.title}">
+                    <Button.Flyout>
+                      <Flyout Placement="BottomEdgeAlignedLeft">
+                        <StackPanel Spacing="2" MinWidth="240">
+                          <Button Classes="menu-item" Content="{l:T import.link.title}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="link" />
+                          <Button Classes="menu-item" Content="{l:T home.import.file}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="file" />
+                          <Button Classes="menu-item" Content="{l:T home.import.qr}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="qr" />
+                          <Button Classes="menu-item" Content="{l:T home.import.clipboard}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="clipboard" />
+                          <Button Classes="menu-item" Content="{l:T home.import.subscription}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="subscription" />
+                          <Button Classes="menu-item" Content="{l:T catalog.title}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="catalog" />
+                          <Button Classes="menu-item" Content="{l:T wizard.manual}" Click="OnImportSourceClick"
+                                  Command="{Binding Shell.OpenImportCommand}" CommandParameter="manual" />
                         </StackPanel>
-                      </Button>
-                      <Button Grid.Column="2" Classes="source-card" Command="{Binding Shell.OpenImportCommand}" CommandParameter="qr" Padding="12">
-                        <StackPanel Spacing="8">
-                          <c:OutlineIcon Data="{StaticResource LineQr}" HorizontalAlignment="Left" />
-                          <TextBlock Text="{l:T home.import.qr}" TextWrapping="Wrap" />
-                        </StackPanel>
-                      </Button>
-                    </Grid>
-                    <TextBlock Classes="faint" Text="{l:T home.import.drop}" TextWrapping="Wrap" />
-                    <WrapPanel>
-                      <Button Classes="text-action" Content="{l:T home.import.clipboard}" Command="{Binding Shell.OpenImportCommand}" CommandParameter="clipboard" Margin="0,0,12,4" />
-                      <Button Classes="text-action" Content="{l:T home.import.subscription}" Command="{Binding Shell.OpenImportCommand}" CommandParameter="subscription" />
-                    </WrapPanel>
-                  </StackPanel>
-                </Expander>
+                      </Flyout>
+                    </Button.Flyout>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                      <c:OutlineIcon Data="{StaticResource LinePlus}" Foreground="{DynamicResource OnPrimaryBrush}" />
+                      <TextBlock Text="{l:T wizard.title}" Foreground="{DynamicResource OnPrimaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Button>
+                  <TextBlock Classes="faint" Text="{l:T home.import.drop}" TextWrapping="Wrap" />
+                </StackPanel>
               </StackPanel>
             </Border>
             <Border Classes="connection-workspace" IsVisible="{Binding !IsEmpty}">
@@ -92,8 +95,6 @@
                         </DataTemplate>
                       </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Button Classes="text-action" Content="{l:T import.title}" Command="{Binding Shell.NavigateCommand}" CommandParameter="connections"
-                      HorizontalAlignment="Center" Margin="0,10,0,0" IsVisible="{Binding !HasProfiles}" />
                     <Border Classes="pill ok" IsVisible="{Binding IsChainActive}" HorizontalAlignment="Center" Margin="0,10,0,0" Padding="10,4">
                       <TextBlock Text="{Binding ActiveChainName}" FontSize="12" TextTrimming="CharacterEllipsis" />
                     </Border>

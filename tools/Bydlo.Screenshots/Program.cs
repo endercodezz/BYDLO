@@ -417,15 +417,22 @@ if (args.Contains("--verify-simple-ui", StringComparer.Ordinal))
         .Single(button => ReferenceEquals(button.Command, shell.Tools.OpenInTelegramCommand));
     if (!telegramToggle.IsEffectivelyVisible || telegramButton.IsEffectivelyVisible)
         throw new InvalidOperationException("The Telegram switch must be visible and its open button hidden until the proxy runs.");
-    var publicServers = homeWindow.GetVisualDescendants().OfType<Button>()
+    // Issue #436: the empty home exposes one "Add server" entry; every import source lives in its menu.
+    var addServer = homeWindow.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "AddServerEntry");
+    if (!addServer.IsEffectivelyVisible || !addServer.Focusable || addServer.Flyout is not Flyout addServerMenu)
+        throw new InvalidOperationException("The empty home must expose one focusable Add server entry.");
+    addServerMenu.ShowAt(addServer);
+    Pump(100);
+    var publicServers = ((StackPanel)addServerMenu.Content!).Children.OfType<Button>()
         .Single(button => Equals(button.CommandParameter, "catalog"));
     if (!publicServers.IsEffectivelyVisible || !publicServers.Focusable)
-        throw new InvalidOperationException("Public servers must be directly accessible from the empty home.");
+        throw new InvalidOperationException("Public servers must stay reachable from the Add server menu.");
     Wait(shell.OpenImportCommand.ExecuteAsync(publicServers.CommandParameter));
     if (!shell.IsAddServerOpen || !shell.AddServerWizard.IsCatalog)
         throw new InvalidOperationException("Public servers must open the catalog directly.");
     Shoot("simple-public-servers-380", 380, 760);
     shell.AddServerWizard.CloseCommand.Execute(null);
+    addServerMenu.Hide();
     homeWindow.Width = 380;
     Pump(100);
     var shortcut = homeWindow.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "ToolShortcut");

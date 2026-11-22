@@ -360,6 +360,7 @@
   "chain.empty": "No chains yet. Combine two or more servers into a relay.",
   "chain.new": "New chain",
   "chain.edit": "Edit chain",
+  "chain.actions": "Chain actions",
   "chain.name": "Chain name",
   "chain.hops": "Servers in order",
   "chain.add.hop": "Add server",

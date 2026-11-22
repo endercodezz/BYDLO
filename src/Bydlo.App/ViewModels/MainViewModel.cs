@@ -210,6 +210,13 @@ public sealed partial class MainViewModel : ViewModelBase
                 AddServerWizard.ChooseQrCommand.Execute(null);
                 await AddServerWizard.SelectQrCommand.ExecuteAsync(null);
                 break;
+            case "manual":
+                AddServerWizard.ChooseManualCommand.Execute(null);
+                break;
+            case "subscription":
+                AddServerWizard.ChooseLinkCommand.Execute(null);
+                AddServerWizard.ImportTypeIndex = 2;
+                break;
             default:
                 AddServerWizard.ChooseLinkCommand.Execute(null);
                 if (source == "clipboard") { await AddServerWizard.PasteCommand.ExecuteAsync(null); }
