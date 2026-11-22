@@ -127,8 +127,8 @@ SOFTWARE.
 компоненты для других платформ или удалённые trimming, что не означает использование всех этих компонентов BYDLO.
 
 Только разработка и тесты: Avalonia.BuildServices 11.3.2, Avalonia.Diagnostics/Headless 11.3.22,
-Grpc.Tools 2.85.0, xUnit 2.9.3 / xunit.runner.visualstudio 3.1.5 (Apache-2.0),
-Microsoft.NET.Test.Sdk 17.14.1 и coverlet.collector 6.0.4 (MIT). Они не поставляются как библиотеки
+Grpc.Tools 2.85.0, xUnit 2.9.3 / xunit.runner.visualstudio 4.0.1 (Apache-2.0),
+Microsoft.NET.Test.Sdk 18.11.0 и coverlet.collector 10.1.0 (MIT). Они не поставляются как библиотеки
 Release-приложения. Лицензии инструментов сохраняются в соответствующих NuGet-пакетах.
 
 ## Ресурсы
