@@ -19,6 +19,39 @@ public sealed class BackupSettingsValidationTests
         Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
     }
 
+    [Fact]
+    public void Rejects_null_server_groups_and_contributors()
+    {
+        // A null list used to pass validation and throw later in ImportSettings (Merge) or after saving.
+        var data = new BackupData();
+        data.Settings.ServerGroups = null!;
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Encrypt(data, "a long backup password"));
+
+        data = new BackupData();
+        data.Settings.ServerGroups = [null!];
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
+
+        data = new BackupData();
+        data.Settings.ServerGroups = [new ServerGroup { Name = "g", ProfileIds = null! }];
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
+
+        data = new BackupData();
+        data.Settings.Contributors = null!;
+        Assert.Throws<InvalidDataException>(() => BackupArchive.Validate(data));
+    }
+
+    [Fact]
+    public void Valid_server_groups_still_merge()
+    {
+        var data = new BackupData();
+        var group = new ServerGroup { Name = "g" };
+        data.Settings.ServerGroups = [group];
+        BackupArchive.Validate(data);
+        var merged = BackupArchive.ImportSettings(data, new AppSettings { ServerGroups = [new ServerGroup { Name = "local" }] }, BackupImportMode.Merge);
+        Assert.Equal(2, merged.ServerGroups.Count);
+    }
+
     [Theory]
     [InlineData("RemoteDnsTransport")]
     [InlineData("DirectDnsTransport")]

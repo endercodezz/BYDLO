@@ -271,6 +271,12 @@ public static class BackupArchive
         if (data.Version != 1 || data.Settings is null || data.Profiles is null || data.Subscriptions is null || data.ToolSecrets?.Values is null || data.Chains is null)
         { throw new InvalidDataException("Invalid backup."); }
         var s = data.Settings;
+        // Every collection the import path enumerates must be present: a null list passed validation
+        // and threw later in ImportSettings or after it was persisted.
+        if (s.ServerGroups is null || s.Contributors is null ||
+            s.ServerGroups.Any(g => g is null || g.Id == Guid.Empty || g.Name is null || g.ProfileIds is null || g.ProbeUrl is null) ||
+            s.Contributors.Any(c => c is null || c.Login is null))
+        { throw new InvalidDataException("Invalid settings."); }
         if (s.Routing is null || s.DpiDefaults is null || s.Zapret is null || s.TgWsProxy is null || s.EnginePaths is null ||
             s.Routing.DirectDomains is null || s.Routing.ProxyDomains is null || s.Routing.BlockDomains is null ||
             s.Routing.DirectCidrs is null || s.Routing.DirectProcesses is null || s.Routing.OrderedRules is null ||
