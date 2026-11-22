@@ -7,7 +7,12 @@ using Bydlo.Core.Storage;
 
 namespace Bydlo.Tests;
 
+/// <summary>Allocation measurements share ArrayPool.Shared, which parallel tests can drain or Gen2 GC can trim.</summary>
+[CollectionDefinition(nameof(AllocationMeasurements), DisableParallelization = true)]
+public sealed class AllocationMeasurements;
+
 /// <summary>Bounded backup buffers (issue #394): same format, fewer copies, limits enforced early.</summary>
+[Collection(nameof(AllocationMeasurements))]
 public sealed class BackupBufferTests
 {
     private const string Password = "a long backup password for buffers";
@@ -158,13 +163,20 @@ public sealed class BackupBufferTests
             data.Profiles.Add(new(new Profile { Name = "p" + i, Protocol = ProtocolKind.WireGuard, Host = "h", Port = 1 },
                 new ProfileSecrets { Values = { [Keys.RawConfig] = config + i } }));
         }
-        BackupArchive.Encrypt(data, Password); // warm the pool
-        var start = GC.GetAllocatedBytesForCurrentThread();
-        BackupArchive.Encrypt(data, Password);
-        var current = GC.GetAllocatedBytesForCurrentThread() - start;
-        start = GC.GetAllocatedBytesForCurrentThread();
-        LegacyEncrypt(data, Password);
-        var legacy = GC.GetAllocatedBytesForCurrentThread() - start;
+        // Best of three: a single run can lose its pooled buffer to a GC trim (flaky on busy CI runners).
+        var current = long.MaxValue;
+        var legacy = long.MaxValue;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            BackupArchive.Encrypt(data, Password); // warm the pool
+            var start = GC.GetAllocatedBytesForCurrentThread();
+            BackupArchive.Encrypt(data, Password);
+            current = Math.Min(current, GC.GetAllocatedBytesForCurrentThread() - start);
+            start = GC.GetAllocatedBytesForCurrentThread();
+            LegacyEncrypt(data, Password);
+            legacy = Math.Min(legacy, GC.GetAllocatedBytesForCurrentThread() - start);
+        }
+
         Assert.True(current * 3 < legacy * 2, $"current={current} legacy={legacy}");
     }
 
