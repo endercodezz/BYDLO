@@ -10,7 +10,7 @@
     <WarningsAsErrors>$(WarningsAsErrors);IL2026;IL2046;IL2057;IL2067;IL2070;IL2072;IL2075;IL2087;IL2091;IL2104;IL3050;IL3051;IL3053</WarningsAsErrors>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
-    <Version>0.4.3</Version>
+    <Version>0.4.4</Version>
     <Product>BYDLO</Product>
     <Company>BYDLO contributors</Company>
     <Copyright>Copyright © BYDLO contributors</Copyright>

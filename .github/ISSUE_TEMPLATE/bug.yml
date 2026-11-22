@@ -34,7 +34,7 @@ body:
     id: version
     attributes:
       label: Версия или коммит BYDLO
-      placeholder: v0.4.3 или a1b2c3d
+      placeholder: v0.4.4 или a1b2c3d
     validations:
       required: true
   - type: dropdown

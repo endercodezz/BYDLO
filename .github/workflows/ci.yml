@@ -44,7 +44,7 @@ jobs:
       - id: policy
         env:
           # Explicit release exceptions; future tags still require signing.
-          UNSIGNED: ${{ github.ref == 'refs/tags/v0.3.1' || github.ref == 'refs/tags/v0.4.0' || github.ref == 'refs/tags/v0.4.1' || github.ref == 'refs/tags/v0.4.2' || github.ref == 'refs/tags/v0.4.3' || (github.event_name == 'workflow_dispatch' && inputs.skip_signing) }}
+          UNSIGNED: ${{ github.ref == 'refs/tags/v0.3.1' || github.ref == 'refs/tags/v0.4.0' || github.ref == 'refs/tags/v0.4.1' || github.ref == 'refs/tags/v0.4.2' || github.ref == 'refs/tags/v0.4.3' || github.ref == 'refs/tags/v0.4.4' || (github.event_name == 'workflow_dispatch' && inputs.skip_signing) }}
         run: |
           echo "unsigned=$UNSIGNED" >> "$GITHUB_OUTPUT"
           echo "Unsigned packaging: $UNSIGNED" >> "$GITHUB_STEP_SUMMARY"

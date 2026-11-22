@@ -12,7 +12,7 @@ BYDLO не изобретает протоколы заново: он управ
 AmneziaWG, OpenVPN), а также [Zapret](https://github.com/Flowseal/zapret-discord-youtube) и
 [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) от Flowseal — через один понятный интерфейс.
 
-> **BYDLO v0.4.3** — подписанный каталог обновлений, отдельные согласия на обращения к GitHub, понятный способ обновления для каждого типа установки, OpenVPN 2.7.9 и быстрый журнал. [Скачать BYDLO](https://github.com/endercodezz/BYDLO/releases) · [Что нового](docs/RELEASE_NOTES.md#bydlo-v043).
+> **BYDLO v0.4.4** — масштаб интерфейса, упрощённая главная, восстановление после неудачного обновления, Flowseal Zapret 1.10.4, PROXY protocol для TgWsProxy и подготовка apt-репозитория. [Скачать BYDLO](https://github.com/endercodezz/BYDLO/releases) · [Что нового](docs/RELEASE_NOTES.md#bydlo-v044).
 > Статусы и ограничения платформ описаны в [матрице совместимости](docs/COMPATIBILITY.md), а порядок ручной проверки — в [руководстве](docs/TESTING.md).
 
 ## Возможности
@@ -83,7 +83,7 @@ Linux: flake для NixOS (`nix run github:endercodezz/BYDLO`), `.deb`, AppImage
 
 Нативные пакеты: Windows Setup/Portable, Linux AppImage/`.deb`, macOS `Setup.pkg`; упаковка и необходимые
 секреты подписи описаны в [BUILD.md](docs/BUILD.md#нативные-пакеты-и-подпись-215).
-В v0.4.3 подпись Windows/macOS временно пропущена: возможны предупреждения SmartScreen,
+В v0.4.4 подпись Windows/macOS временно пропущена: возможны предупреждения SmartScreen,
 UAC и Gatekeeper. Для проверки файлов доступны SHA-256 и GitHub attestations.
 
 ### Кто обновляет вашу установку
