@@ -450,6 +450,20 @@
     <Setter Property="Background" Value="Transparent" />
   </Style>
 
+  <!-- Rows of a flyout menu: secondary actions stay reachable behind one visible entry (issue #436). -->
+  <Style Selector="Button.menu-item">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+  <Style Selector="Button.menu-item:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+  </Style>
+
   <Style Selector="Border.profile-row.active">
     <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
   </Style>
@@ -533,8 +547,5 @@
   </Style>
   <Style Selector="ToggleSwitch:checked /template/ Ellipse#SwitchKnobOn">
     <Setter Property="Fill" Value="{DynamicResource OnPrimaryBrush}" />
-  </Style>
-  <Style Selector=".desktop WrapPanel.empty-actions">
-    <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
 </Styles>

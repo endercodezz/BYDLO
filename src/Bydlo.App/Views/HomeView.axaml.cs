@@ -1,11 +1,22 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 namespace Bydlo.App.Views;
 
 public sealed partial class HomeView : UserControl
 {
     public HomeView() => InitializeComponent();
+
+    /// <summary>
+    /// Closes the "Add server" menu after the chosen import flow starts. The hide is deferred so the
+    /// command binding is still alive when the menu item finishes its click.
+    /// </summary>
+    private void OnImportSourceClick(object? sender, RoutedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(() => AddServerEntry.Flyout?.Hide(), DispatcherPriority.Background);
+    }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
