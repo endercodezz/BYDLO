@@ -133,19 +133,13 @@ public sealed partial class SettingsViewModel
             if (files.Count == 0) { return; }
             using var file = files[0];
             await using var stream = await file.OpenReadAsync();
-            using var buffer = new MemoryStream();
-            var chunk = new byte[8192];
-            int count;
-            while ((count = await stream.ReadAsync(chunk)) > 0)
-            {
-                if (buffer.Length + count > BackupArchive.MaximumFileSize) { throw new InvalidDataException(); }
-                buffer.Write(chunk, 0, count);
-            }
+            // One bounded buffer, handed to the session without another copy (issue #394).
+            var archive = await BackupArchive.ReadFileAsync(stream);
             var password = BackupPassword;
             var lifetime = Services.ShutdownToken;
             var opened = await Task.Run(() =>
             {
-                var session = BackupArchive.OpenImport(buffer.ToArray(), password);
+                var session = BackupArchive.OpenImportOwned(archive, password);
                 // Register on the worker too: shutdown can stop the UI dispatcher before
                 // this await resumes and transfers ownership to the ViewModel.
                 try { return (Session: session, Shutdown: lifetime.Register(session.Dispose)); }

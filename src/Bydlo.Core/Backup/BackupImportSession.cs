@@ -26,14 +26,15 @@ public sealed class BackupImportSession : IDisposable
 
     private BackupImportSession(byte[] archive, byte[] key) { _archive = archive; _key = key; }
 
-    internal static BackupImportSession Open(byte[] file, string password)
+    internal static BackupImportSession Open(byte[] file, string password, bool copy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
         if (file.Length < BackupArchive.Overhead || file.Length > BackupArchive.MaximumFileSize ||
             !file.AsSpan(0, 8).SequenceEqual(BackupArchive.Header))
         { throw new InvalidDataException("Unsupported backup."); }
-        // Never retain a caller-owned array that can change after authentication.
-        var archive = file.ToArray();
+        // Never retain a caller-owned array that can change after authentication; an owned
+        // array (OpenImportOwned) is already exclusive to the session.
+        var archive = copy ? file.ToArray() : file;
         var key = Rfc2898DeriveBytes.Pbkdf2(password, archive.AsSpan(8, 16), BackupArchive.Iterations, HashAlgorithmName.SHA256, 32);
         var session = new BackupImportSession(archive, key);
         try
@@ -78,7 +79,7 @@ public sealed class BackupImportSession : IDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             return ReadPlaintext(plaintext =>
             {
-                var data = JsonSerializer.Deserialize(plaintext, JsonDefaults.Options.Info<BackupData>())
+                var data = JsonSerializer.Deserialize(plaintext.Span, JsonDefaults.Options.Info<BackupData>())
                     ?? throw new InvalidDataException("Invalid backup.");
                 BackupArchive.Validate(data);
                 return data;
@@ -86,25 +87,14 @@ public sealed class BackupImportSession : IDisposable
         }
     }
 
-    private T ReadPlaintext<T>(Func<byte[], T> read)
-    {
-        var plaintext = new byte[_archive.Length - BackupArchive.Overhead];
-        try
-        {
-            using var aes = new AesGcm(_key, 16);
-            aes.Decrypt(_archive.AsSpan(24, 12), _archive.AsSpan(BackupArchive.Overhead),
-                _archive.AsSpan(36, 16), plaintext, _archive.AsSpan(0, 24));
-            return read(plaintext);
-        }
-        finally { CryptographicOperations.ZeroMemory(plaintext); }
-    }
+    private T ReadPlaintext<T>(Func<ReadOnlyMemory<byte>, T> read) => BackupArchive.DecryptWith(_key, _archive, read);
 
-    private static BackupData ReadMetadata(byte[] plaintext)
+    private static BackupData ReadMetadata(ReadOnlyMemory<byte> plaintext)
     {
         using var sanitized = new MemoryStream();
         using (var writer = new Utf8JsonWriter(sanitized))
         {
-            var reader = new Utf8JsonReader(plaintext);
+            var reader = new Utf8JsonReader(plaintext.Span);
             if (!reader.Read()) { throw new InvalidDataException("Invalid backup."); }
             CopyValue(ref reader, writer, false, false);
             if (reader.Read()) { throw new InvalidDataException("Invalid backup."); }
