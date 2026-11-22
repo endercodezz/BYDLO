@@ -11,6 +11,7 @@ using Bydlo.Core.Storage;
 namespace Bydlo.Tests;
 
 /// <summary>Typed backup copy (issue #393): every field survives and no mutable state is shared.</summary>
+[Collection(nameof(AllocationMeasurements))]
 public sealed class BackupCopyTests
 {
     [Fact]

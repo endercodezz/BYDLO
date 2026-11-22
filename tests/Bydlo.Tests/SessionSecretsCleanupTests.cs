@@ -71,7 +71,8 @@ public sealed class SessionSecretsCleanupTests
         var engine = SingBox(runner);
         var work = TestDirs.New("sb-clean-fail");
         var start = engine.StartAsync(SingBoxRequest(work));
-        await Task.Delay(100);
+        // Wait for the fake process instead of a fixed delay: a slow runner made runner.Last null.
+        await WaitForAsync(() => runner.Last is not null);
         runner.Last!.Crash(1);
         await Assert.ThrowsAsync<EngineException>(() => start);
         Assert.False(File.Exists(Path.Combine(work, "sing-box.json")));
@@ -84,7 +85,8 @@ public sealed class SessionSecretsCleanupTests
         var engine = Xray(runner);
         var work = TestDirs.New("xray-clean-fail");
         var start = engine.StartAsync(XrayRequest(work));
-        await Task.Delay(100);
+        // Wait for the fake process instead of a fixed delay: a slow runner made runner.Last null.
+        await WaitForAsync(() => runner.Last is not null);
         runner.Last!.Crash(1);
         await Assert.ThrowsAsync<EngineException>(() => start);
         Assert.False(File.Exists(Path.Combine(work, "xray.json")));
