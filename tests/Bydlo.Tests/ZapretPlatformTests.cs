@@ -40,8 +40,8 @@ public class ZapretPlatformTests
         // This fixture models a Windows x64 package even when the test host is macOS ARM64.
         var installer = new EngineInstaller(http, engineLock, Path.Combine(data, "engines"), packagePlatform: platform);
         var locator = new EngineLocator(installer, platform, bundle);
-        var bundledRoot = CreateFlowseal(Path.Combine(bundle, "engines", "zapret", entry.Version, "zapret-discord-youtube-1.10.3"));
-        var managedRoot = CreateFlowseal(Path.Combine(installer.InstallDirectory("zapret", entry.Version), "zapret-discord-youtube-1.10.3"));
+        var bundledRoot = CreateFlowseal(Path.Combine(bundle, "engines", "zapret", entry.Version, "zapret-discord-youtube-1.10.4"));
+        var managedRoot = CreateFlowseal(Path.Combine(installer.InstallDirectory("zapret", entry.Version), "zapret-discord-youtube-1.10.4"));
         var customRoot = CreateFlowseal(Path.Combine(root, "custom"));
         var engine = new ZapretEngine(new FakeProcessRunner(), new LogRedactor(), locator, new FakePrivileges(true));
         var settings = new AppSettings { Zapret = new() { InstallPath = customRoot } };
