@@ -3,7 +3,7 @@ module bydlo.local/amneziawg
 go 1.26.0
 
 require (
-	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20261116
 	golang.org/x/sys v0.50.0
 )
 
